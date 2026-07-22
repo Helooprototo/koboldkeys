@@ -1,4 +1,4 @@
-#include "key.h"
+#include "structs.h"
 #include <iostream>
 #include <malloc.h>
 #include <sys/stat.h>

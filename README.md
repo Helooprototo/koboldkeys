@@ -5,10 +5,10 @@ A wayland keyboard overlay that works through reading the input device events fr
 ## Building
 
 ```sh
-git clone https://github.com/Helooprototo/koboldkeys.git
-cd koboldeys/src
-mkdir build
-cd build
-cmake ..
-make
+git clone https://github.com/Helooprototo/koboldkeys.git &&
+cd koboldkeys/src &&
+mkdir build &&
+cd build &&
+cmake .. &&
+make;
 ```

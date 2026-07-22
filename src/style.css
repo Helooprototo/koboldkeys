@@ -1,0 +1,11 @@
+button{
+    color: black;
+    font: 24px
+}
+button:checked{
+    background:greenyellow;
+}
+button:not(:checked){
+    background:white;
+}
+

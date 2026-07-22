@@ -48,7 +48,6 @@ void *keyboard_loop(void *args) {
 
       // Only accept non-repeat Key inputs
       if (ev.type == EV_KEY && ev.value != REPEAT) {
-        // printf("CLOCK INPUT: %u\n", clock() / (CLOCKS_PER_SEC / 100000));
         xkb_keycode_t keycode = ev.code + 8;
         xkb_state_update_key(state, keycode,
                              ev.value == UP ? XKB_KEY_UP : XKB_KEY_DOWN);
@@ -95,8 +94,6 @@ void *keyboard_loop(void *args) {
               } else {
                 gtk_widget_unset_state_flags(upd->button, upd->flag);
               }
-              // printf("CLOCK WINDOW: %u\n", clock() / (CLOCKS_PER_SEC /
-              // 100000));
               g_free(upd);
               config->buttons[i].clicked_by += 1;
             } else if (ev.value == UP && strcasecmp(key_name, token) == 0) {
@@ -112,8 +109,6 @@ void *keyboard_loop(void *args) {
                 } else {
                   gtk_widget_unset_state_flags(upd->button, upd->flag);
                 }
-                // printf("CLOCK WINDOW: %u\n", clock() / (CLOCKS_PER_SEC /
-                // 100000));
                 g_free(upd);
               }
               config->buttons[i].clicked_by -= 1;

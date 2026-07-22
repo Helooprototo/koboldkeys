@@ -24,7 +24,6 @@ gboolean button_click_update(void *data) {
   } else {
     gtk_widget_unset_state_flags(update->button, update->flag);
   }
-  printf("CLOCK WINDOW: %u\n", clock() / (CLOCKS_PER_SEC / 100000));
   g_free(update);
   return G_SOURCE_REMOVE;
 }

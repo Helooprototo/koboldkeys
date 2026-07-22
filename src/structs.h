@@ -10,10 +10,7 @@ struct ButtonCoordinates {
   int width;
   int height;
 };
-struct ButtonSyms {
-  size_t size;
-  char **syms;
-};
+
 struct ButtonConfig {
   const char *sym;
   const char *label;
@@ -22,7 +19,6 @@ struct ButtonConfig {
   int caps_state;
   struct ButtonCoordinates coords;
   GtkWidget *button;
-  struct ButtonSyms syms;
 };
 
 struct ButtonClickUpdate {

@@ -1,5 +1,5 @@
-#ifndef _KEY_H_
-#define _KEY_H_
+#ifndef _STRUCTS_H_
+#define _STRUCTS_H_
 
 #include <gtk/gtk.h>
 #include <linux/input.h>

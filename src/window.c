@@ -1,6 +1,5 @@
 #include "config.h"
 #include "input.h"
-#include "key.h"
 #include <gtk-layer-shell/gtk-layer-shell.h>
 #include <gtk/gtk.h>
 #include <linux/input.h>

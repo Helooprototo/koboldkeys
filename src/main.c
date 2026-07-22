@@ -2,7 +2,6 @@
 #include "window.h"
 #include "config.h"
 #include <stdio.h>
-#include "key.h"
 
 int main(){
     printf("Hello, world!\n");

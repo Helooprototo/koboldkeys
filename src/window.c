@@ -29,10 +29,7 @@ gboolean button_click_update(void *data) {
 
 static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
-  size_t alloc_size = sizeof(struct InputConfig) +
-                      conf->input.kbd.size * sizeof(struct ButtonConfig);
-  struct InputConfig *in = malloc(alloc_size); //&conf->input;
-  memcpy(in, &conf->input, alloc_size);
+  struct InputConfig *in = &conf->input;
   int size = in->kbd.size;
   GtkWidget *window;
 

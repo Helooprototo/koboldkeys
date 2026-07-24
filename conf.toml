@@ -1,9 +1,9 @@
 [window]
-edge=0
-edge2=3
-layer=3
-is-layer-shell=1
-transparent=1
+edge="Bottom"
+edge2="left"
+layer="overlay"
+is-layer-shell=true
+transparent=true
 
 [input]
 keyboard="/dev/input/event4"
@@ -19,9 +19,9 @@ y=-1
 x=2
 width=3
 [button.3]
-sym="shift_l|shift_r"
+sym=["shift_l","shift_r"]
 label="SHIFT"
-x=-1
+x=-11
 y=-1
 [button.4]
 sym="W"

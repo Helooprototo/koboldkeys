@@ -6,16 +6,18 @@
 #include <toml++/toml.hpp>
 #include <unistd.h>
 
-void map_bool(int* out,toml::node_view<toml::node> data){
-  if(data.is_string()){
+#define MAX_SYM_LENGTH 256 // should be more than enough
+
+void map_bool(int *out, toml::node_view<toml::node> data) {
+  if (data.is_string()) {
     char *str = strdup(data.value_or("true"));
-    *out = (strcasecmp(str,"true")==0)? 1:0;
+    *out = (strcasecmp(str, "true") == 0) ? 1 : 0;
     free(str);
-  }else if(data.is_integer()){
-    *out=data.value_or(1);
-  }else if(data.is_boolean()){
+  } else if (data.is_integer()) {
+    *out = data.value_or(1);
+  } else if (data.is_boolean()) {
     *out = data.value<bool>().value_or(1);
-  }else{
+  } else {
     *out = 1;
   }
 }
@@ -28,18 +30,18 @@ void map_edge(int *out, toml::node_view<toml::node> edge) {
       *out = GTK_LAYER_SHELL_EDGE_RIGHT;
     } else if (strcasecmp(str, "TOP") == 0) {
       *out = GTK_LAYER_SHELL_EDGE_TOP;
-    }else if (strcasecmp(str,"BOTTOM")==0){
-      *out=GTK_LAYER_SHELL_EDGE_BOTTOM;
+    } else if (strcasecmp(str, "BOTTOM") == 0) {
+      *out = GTK_LAYER_SHELL_EDGE_BOTTOM;
     }
     free(str);
   } else if (edge.is_integer()) {
     *out = edge.value_or(GTK_LAYER_SHELL_EDGE_BOTTOM);
-  }else{
+  } else {
     *out = GTK_LAYER_SHELL_EDGE_BOTTOM;
   }
 }
-void map_layer(int *out,toml::node_view<toml::node>layer){
-  if(layer.is_string()){
+void map_layer(int *out, toml::node_view<toml::node> layer) {
+  if (layer.is_string()) {
     char *str = strdup(layer.value_or("overlay"));
     if (strcasecmp(str, "BACKGROUND") == 0) {
       *out = GTK_LAYER_SHELL_LAYER_BACKGROUND;
@@ -50,9 +52,9 @@ void map_layer(int *out,toml::node_view<toml::node>layer){
     } else if (strcasecmp(str, "OVERLAY") == 0) {
       *out = GTK_LAYER_SHELL_LAYER_OVERLAY;
     }
-  }else if(layer.is_integer()){
+  } else if (layer.is_integer()) {
     *out = layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
-  }else{
+  } else {
     *out = GTK_LAYER_SHELL_LAYER_OVERLAY;
   }
 }
@@ -110,12 +112,27 @@ struct Config *config() {
   config->input.kbd.xkb.options = strdup(toml["xkb"]["options"].value_or(""));
   map_edge(&config->window.edge, toml["window"]["edge"]);
   map_edge(&config->window.edge2, toml["window"]["edge2"]);
-  map_layer(&config->window.layer,toml["window"]["layer"]);
-  map_bool(&config->window.layer_shell,toml["window"]["is-layer-shell"]);
-  map_bool(&config->window.paintable,toml["window"]["transparent"]);
+  map_layer(&config->window.layer, toml["window"]["layer"]);
+  map_bool(&config->window.layer_shell, toml["window"]["is-layer-shell"]);
+  map_bool(&config->window.paintable, toml["window"]["transparent"]);
   toml["button"].as_table()->for_each([config, &index,
                                        size](auto &key, toml::table &value) {
-    config->input.kbd.buttons[index].sym = strdup(value["sym"].value_or(""));
+    if (value["sym"].is_array()) {
+      size_t sym_count = value["sym"].as_array()->size();
+      config->input.kbd.buttons[index].sym_count = sym_count;
+      config->input.kbd.buttons[index].syms = (char **)malloc(sym_count * sizeof(char *));
+      size_t sym_i = 0;
+      for (auto &&sym : *value["sym"].as_array()) {
+          config->input.kbd.buttons[index].syms[sym_i] = strdup(sym.value_or(""));
+          sym_i+=1;
+        
+      };
+    } else if(value["sym"].is_string()){
+      config->input.kbd.buttons[index].sym_count = 1;
+      config->input.kbd.buttons[index].syms = (char **)malloc(1 * sizeof(char *));
+      config->input.kbd.buttons[index].syms[0] = strdup(value["sym"].value_or(""));
+    }
+
     config->input.kbd.buttons[index].label =
         strdup(value["label"].value_or(value["sym"].value_or("")));
     config->input.kbd.buttons[index].case_label = strdup(

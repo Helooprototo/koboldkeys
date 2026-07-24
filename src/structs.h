@@ -12,13 +12,14 @@ struct ButtonCoordinates {
 };
 
 struct ButtonConfig {
-  const char *sym;
   const char *label;
   const char *case_label;
   int clicked_by;
   int caps_state;
   struct ButtonCoordinates coords;
   GtkWidget *button;
+  size_t sym_count;
+  char **syms;
 };
 
 struct ButtonClickUpdate {

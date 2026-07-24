@@ -56,9 +56,8 @@ void *keyboard_loop(void *args) {
         char key_name[64];
         xkb_keysym_get_name(keysym, key_name, sizeof(key_name));
         for (int i = 0; i < config->size; i++) {
-          char *button_sym = strdup(config->buttons[i].sym);
-          const char *token = strtok(button_sym, "|");
-          // Switching the labels of tha buttons
+          // const char *token = strtok(button_sym, "|");
+          //  Switching the labels of tha buttons
           if (level == TRUE) {
             struct ButtonLabelUpdate *upd =
                 malloc(sizeof(struct ButtonLabelUpdate));
@@ -75,29 +74,31 @@ void *keyboard_loop(void *args) {
             g_idle_add(button_label_update, upd);
           }
           // Color tha buttons if sym is pressed
-          while (token) {
-            if (ev.value == DOWN && strcasecmp(key_name, token) == 0) {
+          for (int sym_i = 0; sym_i < config->buttons[i].sym_count; sym_i++) {
+            char* sym = config->buttons[i].syms[sym_i];
+            printf("current button sym: %i,%s\n",sym_i,sym);
+            if (ev.value == DOWN && strcasecmp(key_name, sym) == 0) {
               struct ButtonClickUpdate *upd =
                   malloc(sizeof(struct ButtonClickUpdate));
               upd->button = config->buttons[i].button;
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
-              g_idle_add_full(G_PRIORITY_HIGH_IDLE,button_click_update,upd,NULL);
+              g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                              NULL);
               config->buttons[i].clicked_by += 1;
-            } else if (ev.value == UP && strcasecmp(key_name, token) == 0) {
+            } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
               if (config->buttons[i].clicked_by <= 1) {
                 struct ButtonClickUpdate *upd =
                     malloc(sizeof(struct ButtonClickUpdate));
                 upd->button = config->buttons[i].button;
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
-                g_idle_add_full(G_PRIORITY_HIGH_IDLE,button_click_update,upd,NULL);
+                g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                                NULL);
               }
               config->buttons[i].clicked_by -= 1;
             }
-            token = strtok(NULL, "|");
           }
-          free(button_sym);
         }
         printf("Sym: %s\n", key_name);
       }

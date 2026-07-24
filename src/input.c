@@ -82,18 +82,7 @@ void *keyboard_loop(void *args) {
               upd->button = config->buttons[i].button;
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
-              // Not sure if this is the right way to do things but we handle
-              // the setting of the state flag IN this thread instead of queuing
-              // Otherwise theres a 1-2 millisecond delay between the physical
-              // key and the state update, this cuts that down to ~20-30
-              // microseconds g_idle_add(button_click_update, upd);
-
-              if (upd->set) {
-                gtk_widget_set_state_flags(upd->button, upd->flag, FALSE);
-              } else {
-                gtk_widget_unset_state_flags(upd->button, upd->flag);
-              }
-              g_free(upd);
+              g_idle_add_full(G_PRIORITY_HIGH_IDLE,button_click_update,upd,NULL);
               config->buttons[i].clicked_by += 1;
             } else if (ev.value == UP && strcasecmp(key_name, token) == 0) {
               if (config->buttons[i].clicked_by <= 1) {
@@ -102,12 +91,7 @@ void *keyboard_loop(void *args) {
                 upd->button = config->buttons[i].button;
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
-                // g_idle_add(button_click_update, upd);
-                if (upd->set) {
-                  gtk_widget_set_state_flags(upd->button, upd->flag, FALSE);
-                } else {
-                  gtk_widget_unset_state_flags(upd->button, upd->flag);
-                }
+                g_idle_add_full(G_PRIORITY_HIGH_IDLE,button_click_update,upd,NULL);
                 g_free(upd);
               }
               config->buttons[i].clicked_by -= 1;

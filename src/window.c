@@ -1,6 +1,8 @@
 #include "config.h"
 #include "input.h"
+#ifdef LAYER_SHELL
 #include <gtk-layer-shell/gtk-layer-shell.h>
+#endif
 #include <gtk/gtk.h>
 #include <linux/input.h>
 #include <pthread.h>
@@ -46,12 +48,14 @@ static void activate(GtkApplication *app, gpointer user_data) {
   grid = gtk_grid_new();
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
   window = gtk_application_window_new(app);
+  #ifdef LAYER_SHELL
   if (conf->window.layer_shell) {
     gtk_layer_init_for_window(GTK_WINDOW(window));
     gtk_layer_set_layer(GTK_WINDOW(window), conf->window.layer);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge, TRUE);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge2, TRUE);
   }
+  #endif
   gtk_window_set_title(GTK_WINDOW(window), "KoboldKeys");
   // gtk_window_set_default_size(GTK_WINDOW(window), 200, 200);
 

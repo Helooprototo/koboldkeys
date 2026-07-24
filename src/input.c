@@ -92,7 +92,6 @@ void *keyboard_loop(void *args) {
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
                 g_idle_add_full(G_PRIORITY_HIGH_IDLE,button_click_update,upd,NULL);
-                g_free(upd);
               }
               config->buttons[i].clicked_by -= 1;
             }

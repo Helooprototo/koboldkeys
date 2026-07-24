@@ -33,6 +33,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
   size_t malloc_size = sizeof(struct InputConfig)+conf->input.kbd.size*sizeof(struct ButtonConfig);
   struct InputConfig* in = malloc(malloc_size);
+  if(in == NULL){
+    perror("Malloc failure");
+    exit(1);
+  }
   memcpy(in,&conf->input,malloc_size);
   int size = in->kbd.size;
   GtkWidget *window;
@@ -63,6 +67,9 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
   char *xdg_config = get_config_path();
   char *path = malloc(strlen(xdg_config) + strlen("style.css") + 1);
+  if(path == NULL){
+    perror("Malloc failure");
+  }
   strcpy(path, xdg_config);
   free(xdg_config);
   strcat(path, "style.css");

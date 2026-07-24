@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 int main(){
-    printf("Hello, world!\n");
+    printf("Hello, koboldkeys!\n");
     struct Config* conf = config();
     create_overlay(conf);
 

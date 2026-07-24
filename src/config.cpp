@@ -66,6 +66,10 @@ char *get_config_path() {
     char *home = getenv("HOME");
     char *def = strdup("/.config/koboldkeys/");
     path = (char *)malloc(strlen(home) + strlen(def) + 1);
+    if(path == NULL){
+      perror("Malloc failure");
+      exit(1);
+    }
     strcpy(path, home);
     strcat(path, def);
     free(def);
@@ -73,6 +77,10 @@ char *get_config_path() {
     char *xdg_config;
     xdg_config = strdup(getenv("XDG_CONFIG_HOME"));
     path = (char *)malloc(strlen(xdg_config) + strlen("/koboldkeys/") + 1);
+    if(path == NULL){
+      perror("Malloc failure");
+      exit(1);
+    }
     strcpy(path, xdg_config);
     free(xdg_config);
     strcat(path, "/koboldkeys/");
@@ -84,13 +92,17 @@ struct Config *config() {
   struct Config *config;
   char *xdg_config = get_config_path();
   char *path = (char *)malloc(strlen(xdg_config) + strlen("conf.toml") + 1);
+  if(path == NULL){
+    perror("Malloc failure");
+    exit(1);
+  }
   strcpy(path, xdg_config);
   free(xdg_config);
   strcat(path, "conf.toml");
   std::cout << "Using config path: " << path << std::endl;
   struct stat st;
   if (stat(path, &st) == -1) {
-    printf("Please create your config file\n");
+    perror("Please create your config file\n");
     exit(1);
   }
   auto toml = toml::parse_file(path);
@@ -102,6 +114,10 @@ struct Config *config() {
   size_t size = toml["button"].as_table()->size();
   config = (Config *)malloc(sizeof(struct Config) +
                             size * sizeof(struct ButtonConfig));
+  if(config == NULL){
+    perror("Malloc failure");
+    exit(1);
+  }
   config->input.kbd.size = size;
   int index = 0;
 
@@ -121,6 +137,10 @@ struct Config *config() {
       size_t sym_count = value["sym"].as_array()->size();
       config->input.kbd.buttons[index].sym_count = sym_count;
       config->input.kbd.buttons[index].syms = (char **)malloc(sym_count * sizeof(char *));
+      if(config->input.kbd.buttons[index].syms == NULL){
+        perror("Malloc failure");
+        exit(1);
+      }
       size_t sym_i = 0;
       for (auto &&sym : *value["sym"].as_array()) {
           config->input.kbd.buttons[index].syms[sym_i] = strdup(sym.value_or(""));
@@ -130,6 +150,10 @@ struct Config *config() {
     } else if(value["sym"].is_string()){
       config->input.kbd.buttons[index].sym_count = 1;
       config->input.kbd.buttons[index].syms = (char **)malloc(1 * sizeof(char *));
+      if(config->input.kbd.buttons[index].syms == NULL){
+        perror("Malloc failure");
+        exit(1);
+      }
       config->input.kbd.buttons[index].syms[0] = strdup(value["sym"].value_or(""));
     }
 

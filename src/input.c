@@ -61,6 +61,10 @@ void *keyboard_loop(void *args) {
           if (level == TRUE) {
             struct ButtonLabelUpdate *upd =
                 malloc(sizeof(struct ButtonLabelUpdate));
+            if(upd == NULL){
+              perror("Malloc failure");
+              exit(1);
+            }
             upd->button = config->buttons[i].button;
             upd->name = config->buttons[i].case_label;
             config->buttons[i].caps_state = TRUE;
@@ -68,6 +72,10 @@ void *keyboard_loop(void *args) {
           } else {
             struct ButtonLabelUpdate *upd =
                 malloc(sizeof(struct ButtonLabelUpdate));
+            if(upd == NULL){
+              perror("Malloc failure");
+              exit(1);
+            }
             upd->button = config->buttons[i].button;
             upd->name = config->buttons[i].label;
             config->buttons[i].caps_state = TRUE;
@@ -76,10 +84,13 @@ void *keyboard_loop(void *args) {
           // Color tha buttons if sym is pressed
           for (int sym_i = 0; sym_i < config->buttons[i].sym_count; sym_i++) {
             char* sym = config->buttons[i].syms[sym_i];
-            printf("current button sym: %i,%s\n",sym_i,sym);
             if (ev.value == DOWN && strcasecmp(key_name, sym) == 0) {
               struct ButtonClickUpdate *upd =
                   malloc(sizeof(struct ButtonClickUpdate));
+              if(upd == NULL){
+                perror("Malloc failure");
+                exit(1);
+              }
               upd->button = config->buttons[i].button;
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
@@ -90,6 +101,10 @@ void *keyboard_loop(void *args) {
               if (config->buttons[i].clicked_by <= 1) {
                 struct ButtonClickUpdate *upd =
                     malloc(sizeof(struct ButtonClickUpdate));
+                if(upd == NULL){
+                  perror("Malloc failure");
+                  exit(1);
+                }
                 upd->button = config->buttons[i].button;
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
@@ -100,7 +115,7 @@ void *keyboard_loop(void *args) {
             }
           }
         }
-        printf("Sym: %s\n", key_name);
+        printf("Pressed Sym: %s\n", key_name);
       }
     }
   }

@@ -8,7 +8,7 @@
 #include <xkbcommon/xkbcommon.h>
 
 #define MAX_SYM_LENGTH 256 // should be more than enough
-xkb_state* create_xkb(toml::node_view<toml::node> data) {
+xkb_state *create_xkb(toml::node_view<toml::node> data) {
   const char *layout = data["layout"].value_or("");
   const char *variant = data["variant"].value_or("");
   const char *options = data["options"].value_or("");
@@ -25,9 +25,8 @@ xkb_state* create_xkb(toml::node_view<toml::node> data) {
     perror("Could not create keymap");
   }
   return xkb_state_new(keymap);
-
 }
-void check_device(const char **out, toml::node_view<toml::node> data) {
+char *check_device(toml::node_view<toml::node> data) {
   struct stat st;
   if (data.is_string()) {
     stat(data.value_or(""), &st);
@@ -35,63 +34,64 @@ void check_device(const char **out, toml::node_view<toml::node> data) {
       perror("File is probably not an input device!");
       exit(1);
     } else {
-      *out = strdup(data.value_or(""));
-      return;
+      return strdup(data.value_or(""));
     }
   } else {
-    *out = strdup("");
+    return strdup("");
   }
 }
-void map_bool(int *out, toml::node_view<toml::node> data) {
+int map_bool(toml::node_view<toml::node> data) {
   if (data.is_string()) {
     char *str = strdup(data.value_or("true"));
-    *out = (strcasecmp(str, "true") == 0) ? 1 : 0;
+    return (strcasecmp(str, "true") == 0) ? 1 : 0;
     free(str);
   } else if (data.is_integer()) {
-    *out = data.value_or(1);
+    return data.value_or(1);
   } else if (data.is_boolean()) {
-    *out = data.value<bool>().value_or(1);
+    return data.value<bool>().value_or(1);
   } else {
-    *out = 1;
+    return 1;
   }
 }
-void map_edge(int *out, toml::node_view<toml::node> edge, int def) {
+int map_edge(toml::node_view<toml::node> edge, int def) {
   if (edge.is_string()) {
     char *str = strdup(edge.value_or(""));
     if (strcasecmp(str, "LEFT") == 0) {
-      *out = GTK_LAYER_SHELL_EDGE_LEFT;
+      return GTK_LAYER_SHELL_EDGE_LEFT;
     } else if (strcasecmp(str, "RIGHT") == 0) {
-      *out = GTK_LAYER_SHELL_EDGE_RIGHT;
+      return GTK_LAYER_SHELL_EDGE_RIGHT;
     } else if (strcasecmp(str, "TOP") == 0) {
-      *out = GTK_LAYER_SHELL_EDGE_TOP;
+      return GTK_LAYER_SHELL_EDGE_TOP;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
-      *out = GTK_LAYER_SHELL_EDGE_BOTTOM;
+      return GTK_LAYER_SHELL_EDGE_BOTTOM;
     } else {
-      *out = def;
+      return def;
     }
     free(str);
   } else if (edge.is_integer()) {
-    *out = edge.value_or(def);
+    return edge.value_or(def);
   } else {
-    *out = def;
+    return def;
   }
 }
-void map_layer(int *out, toml::node_view<toml::node> layer) {
+int map_layer(toml::node_view<toml::node> layer) {
   if (layer.is_string()) {
     char *str = strdup(layer.value_or("overlay"));
     if (strcasecmp(str, "BACKGROUND") == 0) {
-      *out = GTK_LAYER_SHELL_LAYER_BACKGROUND;
+      return GTK_LAYER_SHELL_LAYER_BACKGROUND;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
-      *out = GTK_LAYER_SHELL_LAYER_BOTTOM;
+      return GTK_LAYER_SHELL_LAYER_BOTTOM;
     } else if (strcasecmp(str, "TOP") == 0) {
-      *out = GTK_LAYER_SHELL_LAYER_TOP;
+      return GTK_LAYER_SHELL_LAYER_TOP;
     } else if (strcasecmp(str, "OVERLAY") == 0) {
-      *out = GTK_LAYER_SHELL_LAYER_OVERLAY;
+      return GTK_LAYER_SHELL_LAYER_OVERLAY;
+    } else {
+      return GTK_LAYER_SHELL_LAYER_OVERLAY;
     }
   } else if (layer.is_integer()) {
-    *out = layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
+    return layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
   } else {
-    *out = GTK_LAYER_SHELL_LAYER_OVERLAY;
+    return GTK_LAYER_SHELL_LAYER_OVERLAY;
   }
 }
 extern "C" char *get_config_path();
@@ -157,7 +157,7 @@ struct Config *config() {
   config->input.kbd.input.size = size;
   int index = 0;
 
-  config->input.mouse.event = strdup(toml["input"]["mouse"].value_or(""));
+  config->input.mouse.event = check_device(toml["input"]["mouse"]);
   if (toml["input"]["keyboard"].is_array()) {
     config->input.kbd.device_count =
         toml["input"]["keyboard"].as_array()->size();
@@ -169,7 +169,8 @@ struct Config *config() {
     }
     int device_index = 0;
     for (auto &&device : *toml["input"]["keyboard"].as_array()) {
-      config->input.kbd.devices[device_index] = strdup(device.value_or(""));
+      config->input.kbd.devices[device_index] =
+          check_device(toml::node_view<toml::node>(device));
       device_index += 1;
     }
   } else if (toml["input"]["keyboard"].is_string()) {
@@ -181,16 +182,17 @@ struct Config *config() {
     config->input.kbd.device_count = 0;
   }
   config->input.kbd.input.state = create_xkb(toml["xkb"]);
-  map_edge(&config->window.edge, toml["window"]["anchors"][0],
-           GTK_LAYER_SHELL_EDGE_BOTTOM);
-  map_edge(&config->window.edge2, toml["window"]["anchors"][1],
-           GTK_LAYER_SHELL_EDGE_LEFT);
-  map_layer(&config->window.layer, toml["window"]["layer"]);
-  map_bool(&config->window.layer_shell, toml["window"]["is-layer-shell"]);
-  map_bool(&config->window.paintable, toml["window"]["transparent"]);
+  config->window.edge =
+      map_edge(toml["window"]["anchors"][0], GTK_LAYER_SHELL_EDGE_BOTTOM);
+  config->window.edge2 =
+      map_edge(toml["window"]["anchors"][1], GTK_LAYER_SHELL_EDGE_LEFT);
+  config->window.layer = map_layer(toml["window"]["layer"]);
+  config->window.layer_shell = map_bool(toml["window"]["is-layer-shell"]);
+  config->window.paintable = map_bool(toml["window"]["transparent"]);
   toml["button"].as_table()->for_each([config, &index,
                                        size](auto &key, toml::table &value) {
-    config->input.kbd.input.buttons[index] = (struct ButtonConfig*)malloc(sizeof(struct ButtonConfig));
+    config->input.kbd.input.buttons[index] =
+        (struct ButtonConfig *)malloc(sizeof(struct ButtonConfig));
     if (value["sym"].is_array()) {
       size_t sym_count = value["sym"].as_array()->size();
       config->input.kbd.input.buttons[index]->sym_count = sym_count;

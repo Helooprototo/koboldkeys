@@ -3,6 +3,7 @@
 #include <gtk/gtk.h>
 #include <linux/input.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <xkbcommon/xkbcommon.h>
 

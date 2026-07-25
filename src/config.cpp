@@ -115,19 +115,49 @@ struct Config *config() {
   }
   size_t size = toml["button"].as_table()->size();
   config = (Config *)malloc(sizeof(struct Config) +
-                            size * sizeof(struct ButtonConfig));
+                            size * sizeof(struct ButtonConfig *));
   if (config == NULL) {
     perror("Malloc failure");
     exit(1);
   }
-  config->input.kbd.size = size;
+  config->input.kbd.input.size = size;
   int index = 0;
 
   config->input.mouse.event = strdup(toml["input"]["mouse"].value_or(""));
-  config->input.kbd.event = strdup(toml["input"]["keyboard"].value_or(""));
-  config->input.kbd.xkb.layout = strdup(toml["xkb"]["layout"].value_or(""));
-  config->input.kbd.xkb.variant = strdup(toml["xkb"]["variant"].value_or(""));
-  config->input.kbd.xkb.options = strdup(toml["xkb"]["options"].value_or(""));
+  if (toml["input"]["keyboard"].is_array()) {
+    config->input.kbd.device_count =
+        toml["input"]["keyboard"].as_array()->size();
+    config->input.kbd.devices = (char **)malloc(
+        toml["input"]["keyboard"].as_array()->size() * sizeof(char *));
+    if (config->input.kbd.devices == NULL) {
+      perror("Malloc failure");
+      exit(1);
+    }
+    int device_index = 0;
+    for (auto &&device : *toml["input"]["keyboard"].as_array()) {
+      config->input.kbd.devices[device_index] = strdup(device.value_or(""));
+      device_index += 1;
+    }
+  } else if (toml["input"]["keyboard"].is_string()) {
+    config->input.kbd.device_count = 1;
+    config->input.kbd.devices = (char **)malloc(1 * sizeof(char *));
+    config->input.kbd.devices[0] =
+        strdup(toml["input"]["keyboard"].value_or(""));
+  } else {
+    config->input.kbd.device_count = 0;
+  }
+  // config->input.kbd.event = strdup(toml["input"]["keyboard"].value_or(""));
+  config->input.kbd.input.xkb = (XkbConfig *)malloc(sizeof(XkbConfig));
+  if (config->input.kbd.input.xkb == NULL) {
+    perror("Malloc failure");
+    exit(1);
+  }
+  config->input.kbd.input.xkb->layout =
+      strdup(toml["xkb"]["layout"].value_or(""));
+  config->input.kbd.input.xkb->variant =
+      strdup(toml["xkb"]["variant"].value_or(""));
+  config->input.kbd.input.xkb->options =
+      strdup(toml["xkb"]["options"].value_or(""));
   map_edge(&config->window.edge, toml["window"]["anchors"][0],
            GTK_LAYER_SHELL_EDGE_BOTTOM);
   map_edge(&config->window.edge2, toml["window"]["anchors"][1],
@@ -137,42 +167,47 @@ struct Config *config() {
   map_bool(&config->window.paintable, toml["window"]["transparent"]);
   toml["button"].as_table()->for_each([config, &index,
                                        size](auto &key, toml::table &value) {
+    config->input.kbd.input.buttons[index] = (struct ButtonConfig*)malloc(sizeof(struct ButtonConfig));
     if (value["sym"].is_array()) {
       size_t sym_count = value["sym"].as_array()->size();
-      config->input.kbd.buttons[index].sym_count = sym_count;
-      config->input.kbd.buttons[index].syms =
+      config->input.kbd.input.buttons[index]->sym_count = sym_count;
+      config->input.kbd.input.buttons[index]->syms =
           (char **)malloc(sym_count * sizeof(char *));
-      if (config->input.kbd.buttons[index].syms == NULL) {
+      if (config->input.kbd.input.buttons[index]->syms == NULL) {
         perror("Malloc failure");
         exit(1);
       }
       size_t sym_i = 0;
       for (auto &&sym : *value["sym"].as_array()) {
-        config->input.kbd.buttons[index].syms[sym_i] = strdup(sym.value_or(""));
+        config->input.kbd.input.buttons[index]->syms[sym_i] =
+            strdup(sym.value_or(""));
         sym_i += 1;
       };
     } else if (value["sym"].is_string()) {
-      config->input.kbd.buttons[index].sym_count = 1;
-      config->input.kbd.buttons[index].syms =
+      config->input.kbd.input.buttons[index]->sym_count = 1;
+      config->input.kbd.input.buttons[index]->syms =
           (char **)malloc(1 * sizeof(char *));
-      if (config->input.kbd.buttons[index].syms == NULL) {
+      if (config->input.kbd.input.buttons[index]->syms == NULL) {
         perror("Malloc failure");
         exit(1);
       }
-      config->input.kbd.buttons[index].syms[0] =
+      config->input.kbd.input.buttons[index]->syms[0] =
           strdup(value["sym"].value_or(""));
     }
 
-    config->input.kbd.buttons[index].label =
+    config->input.kbd.input.buttons[index]->label =
         strdup(value["label"].value_or(value["sym"].value_or("")));
-    config->input.kbd.buttons[index].case_label = strdup(
-        value["case-label"].value_or(config->input.kbd.buttons[index].label));
-    config->input.kbd.buttons[index].clicked_by = 0;
-    config->input.kbd.buttons[index].caps_state = FALSE;
-    config->input.kbd.buttons[index].coords.x = value["x"].value_or(0);
-    config->input.kbd.buttons[index].coords.y = value["y"].value_or(0) * -1;
-    config->input.kbd.buttons[index].coords.width = value["width"].value_or(1);
-    config->input.kbd.buttons[index].coords.height =
+    config->input.kbd.input.buttons[index]->case_label =
+        strdup(value["case-label"].value_or(
+            config->input.kbd.input.buttons[index]->label));
+    config->input.kbd.input.buttons[index]->clicked_by = 0;
+    config->input.kbd.input.buttons[index]->caps_state = FALSE;
+    config->input.kbd.input.buttons[index]->coords.x = value["x"].value_or(0);
+    config->input.kbd.input.buttons[index]->coords.y =
+        value["y"].value_or(0) * -1;
+    config->input.kbd.input.buttons[index]->coords.width =
+        value["width"].value_or(1);
+    config->input.kbd.input.buttons[index]->coords.height =
         value["height"].value_or(1);
     index += 1;
   });

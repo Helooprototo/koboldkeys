@@ -46,11 +46,17 @@ struct MouseConfig {
   GtkWidget *fixed;
   const char *event;
 };
-struct KeyboardConfig {
+struct KeyboardInputConfig{
   size_t size;
-  const char *event;
-  struct XkbConfig xkb;
-  struct ButtonConfig buttons[];
+  char *event;
+  struct XkbConfig *xkb;
+  struct ButtonConfig* buttons[];
+};
+struct KeyboardConfig {
+
+  size_t device_count;
+  char **devices;
+  struct KeyboardInputConfig input;
 };
 struct InputConfig {
   struct MouseConfig mouse;

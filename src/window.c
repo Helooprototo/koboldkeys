@@ -32,21 +32,21 @@ gboolean button_click_update(void *data) {
 static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
   size_t malloc_size = sizeof(struct InputConfig) +
-                       conf->input.kbd.size * sizeof(struct ButtonConfig);
+                       conf->input.kbd.input.size * sizeof(struct ButtonConfig*);
   struct InputConfig *in = malloc(malloc_size);
   if (in == NULL) {
     perror("Malloc failure");
     exit(1);
   }
   memcpy(in, &conf->input, malloc_size);
-  int size = in->kbd.size;
+  int size = in->kbd.input.size;
   GtkWidget *window;
 
   for (int i = 0; i < size; i++) {
-    in->kbd.buttons[i].button = gtk_button_new();
-    gtk_button_set_label(GTK_BUTTON(in->kbd.buttons[i].button),
-                         in->kbd.buttons[i].label);
-    gtk_widget_set_name(in->kbd.buttons[i].button, "unclicked");
+    in->kbd.input.buttons[i]->button = gtk_button_new();
+    gtk_button_set_label(GTK_BUTTON(in->kbd.input.buttons[i]->button),
+                         in->kbd.input.buttons[i]->label);
+    gtk_widget_set_name(in->kbd.input.buttons[i]->button, "unclicked");
   }
   GtkWidget *grid;
   GtkWidget *box;
@@ -88,10 +88,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
   // g_signal_connect(GTK_BUTTON(quit),"clicked",G_CALLBACK(destroy),app);
   // gtk_container_add(GTK_CONTAINER(box),quit);
   for (int i = 0; i < size; i++) {
-    gtk_grid_attach(GTK_GRID(grid), in->kbd.buttons[i].button,
-                    in->kbd.buttons[i].coords.x, in->kbd.buttons[i].coords.y,
-                    in->kbd.buttons[i].coords.width,
-                    in->kbd.buttons[i].coords.height);
+    gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
+                    in->kbd.input.buttons[i]->coords.x, in->kbd.input.buttons[i]->coords.y,
+                    in->kbd.input.buttons[i]->coords.width,
+                    in->kbd.input.buttons[i]->coords.height);
   }
   pthread_t input_thread;
   pthread_create(&input_thread, NULL, input_loop, in);

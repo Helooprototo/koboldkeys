@@ -11,7 +11,7 @@
 #define REPEAT 2
 
 void *keyboard_loop(void *args) {
-  struct KeyboardConfig *config = (struct KeyboardConfig *)args;
+  struct KeyboardInputConfig *config = (struct KeyboardInputConfig *)args;
 
   struct xkb_context *kbd_ctx;
   kbd_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
@@ -19,9 +19,9 @@ void *keyboard_loop(void *args) {
     perror("Could not create keyboard context");
   }
   struct xkb_keymap *keymap;
-  struct xkb_rule_names names = {NULL, NULL, .layout = config->xkb.layout,
-                                 .variant = config->xkb.variant,
-                                 config->xkb.options};
+  struct xkb_rule_names names = {NULL, NULL, .layout = config->xkb->layout,
+                                 .variant = config->xkb->variant,
+                                 config->xkb->options};
   keymap = xkb_keymap_new_from_names2(
       kbd_ctx, &names, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
   if (!keymap) {
@@ -64,9 +64,9 @@ void *keyboard_loop(void *args) {
               perror("Malloc failure");
               exit(1);
             }
-            upd->button = config->buttons[i].button;
-            upd->name = config->buttons[i].case_label;
-            config->buttons[i].caps_state = TRUE;
+            upd->button = config->buttons[i]->button;
+            upd->name = config->buttons[i]->case_label;
+            config->buttons[i]->caps_state = TRUE;
             g_idle_add(button_label_update, upd);
           } else {
             struct ButtonLabelUpdate *upd =
@@ -75,14 +75,14 @@ void *keyboard_loop(void *args) {
               perror("Malloc failure");
               exit(1);
             }
-            upd->button = config->buttons[i].button;
-            upd->name = config->buttons[i].label;
-            config->buttons[i].caps_state = TRUE;
+            upd->button = config->buttons[i]->button;
+            upd->name = config->buttons[i]->label;
+            config->buttons[i]->caps_state = TRUE;
             g_idle_add(button_label_update, upd);
           }
           // Color tha buttons if sym is pressed
-          for (int sym_i = 0; sym_i < config->buttons[i].sym_count; sym_i++) {
-            char *sym = config->buttons[i].syms[sym_i];
+          for (int sym_i = 0; sym_i < config->buttons[i]->sym_count; sym_i++) {
+            char *sym = config->buttons[i]->syms[sym_i];
             if (ev.value == DOWN && strcasecmp(key_name, sym) == 0) {
               struct ButtonClickUpdate *upd =
                   malloc(sizeof(struct ButtonClickUpdate));
@@ -90,27 +90,27 @@ void *keyboard_loop(void *args) {
                 perror("Malloc failure");
                 exit(1);
               }
-              upd->button = config->buttons[i].button;
+              upd->button = config->buttons[i]->button;
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
               g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                               NULL);
-              config->buttons[i].clicked_by += 1;
+              config->buttons[i]->clicked_by += 1;
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
-              if (config->buttons[i].clicked_by <= 1) {
+              if (config->buttons[i]->clicked_by <= 1) {
                 struct ButtonClickUpdate *upd =
                     malloc(sizeof(struct ButtonClickUpdate));
                 if (upd == NULL) {
                   perror("Malloc failure");
                   exit(1);
                 }
-                upd->button = config->buttons[i].button;
+                upd->button = config->buttons[i]->button;
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
                 g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                                 NULL);
               }
-              config->buttons[i].clicked_by -= 1;
+              config->buttons[i]->clicked_by -= 1;
             }
           }
         }
@@ -146,9 +146,17 @@ void *mouse_loop(void *args) {
 
 void *input_loop(void *args) {
   struct InputConfig *conf = (struct InputConfig *)args;
-  if (strcmp(conf->kbd.event, "") != 0) {
-    pthread_t kbd;
-    pthread_create(&kbd, NULL, keyboard_loop, &conf->kbd);
+  if (conf->kbd.device_count > 0) {
+    for (int i = 0; i < conf->kbd.device_count; i++) {
+      size_t malloc_size = sizeof(struct KeyboardInputConfig) +
+                           conf->kbd.input.size * sizeof(struct ButtonConfig *);
+      struct KeyboardInputConfig *kbd_conf = malloc(
+          malloc_size); // Dont forget to allocate for the button array pointer
+      memcpy(kbd_conf, &conf->kbd.input, malloc_size);
+      kbd_conf->event = strdup(conf->kbd.devices[i]);
+      pthread_t kbd;
+      pthread_create(&kbd, NULL, keyboard_loop, kbd_conf);
+    }
   }
   if (strcmp(conf->mouse.event, "") != 0) {
     pthread_t mouse;

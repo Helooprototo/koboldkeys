@@ -1,12 +1,12 @@
 
-#include "window.h"
 #include "config.h"
+#include "window.h"
 #include <stdio.h>
 
-int main(){
-    printf("Hello, koboldkeys!\n");
-    struct Config* conf = config();
-    create_overlay(conf);
+int main() {
+  printf("Hello, koboldkeys!\n");
+  struct Config *conf = config();
+  create_overlay(conf);
 
-    return 0;
+  return 0;
 }

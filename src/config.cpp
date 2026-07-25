@@ -128,8 +128,10 @@ struct Config *config() {
   config->input.kbd.xkb.layout = strdup(toml["xkb"]["layout"].value_or(""));
   config->input.kbd.xkb.variant = strdup(toml["xkb"]["variant"].value_or(""));
   config->input.kbd.xkb.options = strdup(toml["xkb"]["options"].value_or(""));
-  map_edge(&config->window.edge, toml["window"]["anchors"][0],GTK_LAYER_SHELL_EDGE_BOTTOM);
-  map_edge(&config->window.edge2, toml["window"]["anchors"][1],GTK_LAYER_SHELL_EDGE_LEFT);
+  map_edge(&config->window.edge, toml["window"]["anchors"][0],
+           GTK_LAYER_SHELL_EDGE_BOTTOM);
+  map_edge(&config->window.edge2, toml["window"]["anchors"][1],
+           GTK_LAYER_SHELL_EDGE_LEFT);
   map_layer(&config->window.layer, toml["window"]["layer"]);
   map_bool(&config->window.layer_shell, toml["window"]["is-layer-shell"]);
   map_bool(&config->window.paintable, toml["window"]["transparent"]);

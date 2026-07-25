@@ -31,13 +31,14 @@ gboolean button_click_update(void *data) {
 
 static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
-  size_t malloc_size = sizeof(struct InputConfig)+conf->input.kbd.size*sizeof(struct ButtonConfig);
-  struct InputConfig* in = malloc(malloc_size);
-  if(in == NULL){
+  size_t malloc_size = sizeof(struct InputConfig) +
+                       conf->input.kbd.size * sizeof(struct ButtonConfig);
+  struct InputConfig *in = malloc(malloc_size);
+  if (in == NULL) {
     perror("Malloc failure");
     exit(1);
   }
-  memcpy(in,&conf->input,malloc_size);
+  memcpy(in, &conf->input, malloc_size);
   int size = in->kbd.size;
   GtkWidget *window;
 
@@ -52,14 +53,14 @@ static void activate(GtkApplication *app, gpointer user_data) {
   grid = gtk_grid_new();
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
   window = gtk_application_window_new(app);
-  #ifdef LAYER_SHELL
+#ifdef LAYER_SHELL
   if (conf->window.layer_shell) {
     gtk_layer_init_for_window(GTK_WINDOW(window));
     gtk_layer_set_layer(GTK_WINDOW(window), conf->window.layer);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge, TRUE);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge2, TRUE);
   }
-  #endif
+#endif
   gtk_window_set_title(GTK_WINDOW(window), "KoboldKeys");
   // gtk_window_set_default_size(GTK_WINDOW(window), 200, 200);
 
@@ -67,7 +68,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
   char *xdg_config = get_config_path();
   char *path = malloc(strlen(xdg_config) + strlen("style.css") + 1);
-  if(path == NULL){
+  if (path == NULL) {
     perror("Malloc failure");
   }
   strcpy(path, xdg_config);

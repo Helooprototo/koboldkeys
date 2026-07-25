@@ -10,7 +10,6 @@ struct ButtonCoordinates {
   int width;
   int height;
 };
-
 struct ButtonConfig {
   const char *label;
   const char *case_label;
@@ -21,7 +20,6 @@ struct ButtonConfig {
   size_t sym_count;
   char **syms;
 };
-
 struct ButtonClickUpdate {
   int set;
   GtkWidget *button;
@@ -44,8 +42,8 @@ struct WindowConfig {
   int paintable;
 };
 struct MouseConfig {
-  GtkWidget* mouse_widget;
-  GtkWidget* fixed;
+  GtkWidget *mouse_widget;
+  GtkWidget *fixed;
   const char *event;
 };
 struct KeyboardConfig {

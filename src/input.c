@@ -61,7 +61,7 @@ void *keyboard_loop(void *args) {
           if (level == TRUE) {
             struct ButtonLabelUpdate *upd =
                 malloc(sizeof(struct ButtonLabelUpdate));
-            if(upd == NULL){
+            if (upd == NULL) {
               perror("Malloc failure");
               exit(1);
             }
@@ -72,7 +72,7 @@ void *keyboard_loop(void *args) {
           } else {
             struct ButtonLabelUpdate *upd =
                 malloc(sizeof(struct ButtonLabelUpdate));
-            if(upd == NULL){
+            if (upd == NULL) {
               perror("Malloc failure");
               exit(1);
             }
@@ -83,11 +83,11 @@ void *keyboard_loop(void *args) {
           }
           // Color tha buttons if sym is pressed
           for (int sym_i = 0; sym_i < config->buttons[i].sym_count; sym_i++) {
-            char* sym = config->buttons[i].syms[sym_i];
+            char *sym = config->buttons[i].syms[sym_i];
             if (ev.value == DOWN && strcasecmp(key_name, sym) == 0) {
               struct ButtonClickUpdate *upd =
                   malloc(sizeof(struct ButtonClickUpdate));
-              if(upd == NULL){
+              if (upd == NULL) {
                 perror("Malloc failure");
                 exit(1);
               }
@@ -101,7 +101,7 @@ void *keyboard_loop(void *args) {
               if (config->buttons[i].clicked_by <= 1) {
                 struct ButtonClickUpdate *upd =
                     malloc(sizeof(struct ButtonClickUpdate));
-                if(upd == NULL){
+                if (upd == NULL) {
                   perror("Malloc failure");
                   exit(1);
                 }

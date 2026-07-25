@@ -1,9 +1,9 @@
 [window]
-# OPTIONAL: First edge anchor, set to bottom if unset. Can be a string or the numerical value of an edge
-edge="left"
-# OPTIONAL: Second edge anchor, set to bottom if unset. Can be a string or the numerical value of an edge
-## If both edges are the same, or the complete opposite (LEFT and LEFT or LEFT and RIGHT), itll be centered on one of the edges
-edge2="bottom"
+# OPTIONAL: List of two anchors, Both set to 'bottom' if unset. Entries can be a string or the numerical value of an edge
+## If both anchors are the same, or the complete opposite (LEFT and LEFT or LEFT and RIGHT), itll be centered on one of the anchors
+## First entry defaults to "bottom" if unset or invalid, second entry defaults to "left" if unset or invalid
+anchors=["bottom","left"]
+
 # OPTIONAL: Layer to use, can be either background, bottom, top, or overlay. Set to overlay if unset. Can be a string or the numerical value of the layer
 layer="overlay"
 # OPTIONAL: Wether or not the window should be a layer shell or a regular window, set to true if unset. Can be a bool-ish value
@@ -54,3 +54,4 @@ x=3
 [button.7]
 sym="D"
 x=4
+

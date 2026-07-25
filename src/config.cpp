@@ -21,9 +21,9 @@ void map_bool(int *out, toml::node_view<toml::node> data) {
     *out = 1;
   }
 }
-void map_edge(int *out, toml::node_view<toml::node> edge) {
+void map_edge(int *out, toml::node_view<toml::node> edge, int def) {
   if (edge.is_string()) {
-    char *str = strdup(edge.value_or("bottom"));
+    char *str = strdup(edge.value_or(""));
     if (strcasecmp(str, "LEFT") == 0) {
       *out = GTK_LAYER_SHELL_EDGE_LEFT;
     } else if (strcasecmp(str, "RIGHT") == 0) {
@@ -32,12 +32,14 @@ void map_edge(int *out, toml::node_view<toml::node> edge) {
       *out = GTK_LAYER_SHELL_EDGE_TOP;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
       *out = GTK_LAYER_SHELL_EDGE_BOTTOM;
+    } else {
+      *out = def;
     }
     free(str);
   } else if (edge.is_integer()) {
-    *out = edge.value_or(GTK_LAYER_SHELL_EDGE_BOTTOM);
+    *out = edge.value_or(def);
   } else {
-    *out = GTK_LAYER_SHELL_EDGE_BOTTOM;
+    *out = def;
   }
 }
 void map_layer(int *out, toml::node_view<toml::node> layer) {
@@ -66,7 +68,7 @@ char *get_config_path() {
     char *home = getenv("HOME");
     char *def = strdup("/.config/koboldkeys/");
     path = (char *)malloc(strlen(home) + strlen(def) + 1);
-    if(path == NULL){
+    if (path == NULL) {
       perror("Malloc failure");
       exit(1);
     }
@@ -77,7 +79,7 @@ char *get_config_path() {
     char *xdg_config;
     xdg_config = strdup(getenv("XDG_CONFIG_HOME"));
     path = (char *)malloc(strlen(xdg_config) + strlen("/koboldkeys/") + 1);
-    if(path == NULL){
+    if (path == NULL) {
       perror("Malloc failure");
       exit(1);
     }
@@ -92,7 +94,7 @@ struct Config *config() {
   struct Config *config;
   char *xdg_config = get_config_path();
   char *path = (char *)malloc(strlen(xdg_config) + strlen("conf.toml") + 1);
-  if(path == NULL){
+  if (path == NULL) {
     perror("Malloc failure");
     exit(1);
   }
@@ -114,7 +116,7 @@ struct Config *config() {
   size_t size = toml["button"].as_table()->size();
   config = (Config *)malloc(sizeof(struct Config) +
                             size * sizeof(struct ButtonConfig));
-  if(config == NULL){
+  if (config == NULL) {
     perror("Malloc failure");
     exit(1);
   }
@@ -126,8 +128,8 @@ struct Config *config() {
   config->input.kbd.xkb.layout = strdup(toml["xkb"]["layout"].value_or(""));
   config->input.kbd.xkb.variant = strdup(toml["xkb"]["variant"].value_or(""));
   config->input.kbd.xkb.options = strdup(toml["xkb"]["options"].value_or(""));
-  map_edge(&config->window.edge, toml["window"]["edge"]);
-  map_edge(&config->window.edge2, toml["window"]["edge2"]);
+  map_edge(&config->window.edge, toml["window"]["anchors"][0],GTK_LAYER_SHELL_EDGE_BOTTOM);
+  map_edge(&config->window.edge2, toml["window"]["anchors"][1],GTK_LAYER_SHELL_EDGE_LEFT);
   map_layer(&config->window.layer, toml["window"]["layer"]);
   map_bool(&config->window.layer_shell, toml["window"]["is-layer-shell"]);
   map_bool(&config->window.paintable, toml["window"]["transparent"]);
@@ -136,25 +138,27 @@ struct Config *config() {
     if (value["sym"].is_array()) {
       size_t sym_count = value["sym"].as_array()->size();
       config->input.kbd.buttons[index].sym_count = sym_count;
-      config->input.kbd.buttons[index].syms = (char **)malloc(sym_count * sizeof(char *));
-      if(config->input.kbd.buttons[index].syms == NULL){
+      config->input.kbd.buttons[index].syms =
+          (char **)malloc(sym_count * sizeof(char *));
+      if (config->input.kbd.buttons[index].syms == NULL) {
         perror("Malloc failure");
         exit(1);
       }
       size_t sym_i = 0;
       for (auto &&sym : *value["sym"].as_array()) {
-          config->input.kbd.buttons[index].syms[sym_i] = strdup(sym.value_or(""));
-          sym_i+=1;
-        
+        config->input.kbd.buttons[index].syms[sym_i] = strdup(sym.value_or(""));
+        sym_i += 1;
       };
-    } else if(value["sym"].is_string()){
+    } else if (value["sym"].is_string()) {
       config->input.kbd.buttons[index].sym_count = 1;
-      config->input.kbd.buttons[index].syms = (char **)malloc(1 * sizeof(char *));
-      if(config->input.kbd.buttons[index].syms == NULL){
+      config->input.kbd.buttons[index].syms =
+          (char **)malloc(1 * sizeof(char *));
+      if (config->input.kbd.buttons[index].syms == NULL) {
         perror("Malloc failure");
         exit(1);
       }
-      config->input.kbd.buttons[index].syms[0] = strdup(value["sym"].value_or(""));
+      config->input.kbd.buttons[index].syms[0] =
+          strdup(value["sym"].value_or(""));
     }
 
     config->input.kbd.buttons[index].label =

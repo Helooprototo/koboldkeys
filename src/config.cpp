@@ -201,7 +201,6 @@ struct Config *config() {
         strdup(value["case-label"].value_or(
             config->input.kbd.input.buttons[index]->label));
     config->input.kbd.input.buttons[index]->clicked_by = 0;
-    config->input.kbd.input.buttons[index]->caps_state = FALSE;
     config->input.kbd.input.buttons[index]->coords.x = value["x"].value_or(0);
     config->input.kbd.input.buttons[index]->coords.y =
         value["y"].value_or(0) * -1;

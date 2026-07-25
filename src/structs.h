@@ -3,7 +3,6 @@
 
 #include <gtk/gtk.h>
 #include <linux/input.h>
-
 struct ButtonCoordinates {
   int x;
   int y;
@@ -13,8 +12,7 @@ struct ButtonCoordinates {
 struct ButtonConfig {
   const char *label;
   const char *case_label;
-  int clicked_by;
-  int caps_state;
+  int clicked_by; //atomic
   struct ButtonCoordinates coords;
   GtkWidget *button;
   size_t sym_count;

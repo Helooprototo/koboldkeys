@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <xkbcommon/xkbcommon.h>
-
+#include <stdatomic.h>
 #define DOWN 1
 #define UP 0
 #define REPEAT 2
@@ -66,7 +66,6 @@ void *keyboard_loop(void *args) {
             }
             upd->button = config->buttons[i]->button;
             upd->name = config->buttons[i]->case_label;
-            config->buttons[i]->caps_state = TRUE;
             g_idle_add(button_label_update, upd);
           } else {
             struct ButtonLabelUpdate *upd =
@@ -77,7 +76,6 @@ void *keyboard_loop(void *args) {
             }
             upd->button = config->buttons[i]->button;
             upd->name = config->buttons[i]->label;
-            config->buttons[i]->caps_state = TRUE;
             g_idle_add(button_label_update, upd);
           }
           // Color tha buttons if sym is pressed
@@ -95,7 +93,7 @@ void *keyboard_loop(void *args) {
               upd->flag = GTK_STATE_FLAG_CHECKED;
               g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                               NULL);
-              config->buttons[i]->clicked_by += 1;
+              atomic_fetch_add((_Atomic int*)&config->buttons[i]->clicked_by,1);
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
               if (config->buttons[i]->clicked_by <= 1) {
                 struct ButtonClickUpdate *upd =
@@ -110,7 +108,7 @@ void *keyboard_loop(void *args) {
                 g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                                 NULL);
               }
-              config->buttons[i]->clicked_by -= 1;
+              atomic_fetch_sub((_Atomic int*)&config->buttons[i]->clicked_by,1);
             }
           }
         }
@@ -162,5 +160,6 @@ void *input_loop(void *args) {
     pthread_t mouse;
     pthread_create(&mouse, NULL, mouse_loop, &conf->mouse);
   }
+  free(conf);
   return (void *)0;
 }

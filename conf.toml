@@ -1,24 +1,41 @@
 [window]
-edge="Bottom"
-edge2="left"
+# OPTIONAL: First edge anchor, set to bottom if unset. Can be a string or the numerical value of an edge
+edge="left"
+# OPTIONAL: Second edge anchor, set to bottom if unset. Can be a string or the numerical value of an edge
+## If both edges are the same, or the complete opposite (LEFT and LEFT or LEFT and RIGHT), itll be centered on one of the edges
+edge2="bottom"
+# OPTIONAL: Layer to use, can be either background, bottom, top, or overlay. Set to overlay if unset. Can be a string or the numerical value of the layer
 layer="overlay"
+# OPTIONAL: Wether or not the window should be a layer shell or a regular window, set to true if unset. Can be a bool-ish value
 is-layer-shell=true
+# OPTIONAL: wether or not the window background should be transparent, set to true if unset. Can be a bool-ish value
 transparent=true
 
 [input]
+# Path to the input device, can be found through evtest. Or by searching /dev/input/by-id/
 keyboard="/dev/input/event4"
 
 [xkb]
+# OPTIONAL: Keyboard layout to use
 layout="de"
+# OPTIONAL: Keyboard variant to use
 variant=""
 
 [button.space]
+# Symbolic to map to the button, can be found through the debug output. Can only be a string
 sym="SPACE"
-label="space"
+# OPTIONAL: normal button label, uses the symbolic value if unset. Can only be a string
+label="space" 
+# OPTIONAL: text to be displayed if caps or shift is held, uses the default label if unset. Can only be a string
+case-label="SPACE"
+# OPTIONAL: Coordinates on the grid, set to 0 if unset. Can only be an integer
 y=-1
 x=2
+# OPTIONAL: The width/height it should take up on the grid, set to 1 if unset. Can only be an integer
 width=3
+height=1 
 [button.3]
+# Symbolic can be an array to map multiple keys
 sym=["shift_l","shift_r"]
 label="SHIFT"
 x=-11

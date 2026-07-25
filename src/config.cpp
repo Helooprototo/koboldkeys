@@ -19,60 +19,62 @@ void check_device(const char **out, toml::node_view<toml::node> data) {
       *out = strdup(data.value_or(""));
       return;
     }
-  }else{
+  } else {
     *out = strdup("");
   }
 }
-void map_bool(int *out, toml::node_view<toml::node> data) {
+int map_bool(toml::node_view<toml::node> data) {
   if (data.is_string()) {
     char *str = strdup(data.value_or("true"));
-    *out = (strcasecmp(str, "true") == 0) ? 1 : 0;
+    return (strcasecmp(str, "true") == 0) ? 1 : 0;
     free(str);
   } else if (data.is_integer()) {
-    *out = data.value_or(1);
+    return data.value_or(1);
   } else if (data.is_boolean()) {
-    *out = data.value<bool>().value_or(1);
+    return data.value<bool>().value_or(1);
   } else {
-    *out = 1;
+    return 1;
   }
 }
-void map_edge(int *out, toml::node_view<toml::node> edge, int def) {
+int map_edge(toml::node_view<toml::node> edge, int def) {
   if (edge.is_string()) {
     char *str = strdup(edge.value_or(""));
     if (strcasecmp(str, "LEFT") == 0) {
-      *out = GTK_LAYER_SHELL_EDGE_LEFT;
+      return GTK_LAYER_SHELL_EDGE_LEFT;
     } else if (strcasecmp(str, "RIGHT") == 0) {
-      *out = GTK_LAYER_SHELL_EDGE_RIGHT;
+      return GTK_LAYER_SHELL_EDGE_RIGHT;
     } else if (strcasecmp(str, "TOP") == 0) {
-      *out = GTK_LAYER_SHELL_EDGE_TOP;
+      return GTK_LAYER_SHELL_EDGE_TOP;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
-      *out = GTK_LAYER_SHELL_EDGE_BOTTOM;
+      return GTK_LAYER_SHELL_EDGE_BOTTOM;
     } else {
-      *out = def;
+      return def;
     }
     free(str);
   } else if (edge.is_integer()) {
-    *out = edge.value_or(def);
+    return edge.value_or(def);
   } else {
-    *out = def;
+    return def;
   }
 }
-void map_layer(int *out, toml::node_view<toml::node> layer) {
+int map_layer(toml::node_view<toml::node> layer) {
   if (layer.is_string()) {
     char *str = strdup(layer.value_or("overlay"));
     if (strcasecmp(str, "BACKGROUND") == 0) {
-      *out = GTK_LAYER_SHELL_LAYER_BACKGROUND;
+      return GTK_LAYER_SHELL_LAYER_BACKGROUND;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
-      *out = GTK_LAYER_SHELL_LAYER_BOTTOM;
+      return GTK_LAYER_SHELL_LAYER_BOTTOM;
     } else if (strcasecmp(str, "TOP") == 0) {
-      *out = GTK_LAYER_SHELL_LAYER_TOP;
+      return GTK_LAYER_SHELL_LAYER_TOP;
     } else if (strcasecmp(str, "OVERLAY") == 0) {
-      *out = GTK_LAYER_SHELL_LAYER_OVERLAY;
+      return GTK_LAYER_SHELL_LAYER_OVERLAY;
+    } else {
+      return GTK_LAYER_SHELL_LAYER_OVERLAY;
     }
   } else if (layer.is_integer()) {
-    *out = layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
+    return layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
   } else {
-    *out = GTK_LAYER_SHELL_LAYER_OVERLAY;
+    return GTK_LAYER_SHELL_LAYER_OVERLAY;
   }
 }
 extern "C" char *get_config_path();
@@ -143,13 +145,13 @@ struct Config *config() {
   config->input.kbd.xkb.layout = strdup(toml["xkb"]["layout"].value_or(""));
   config->input.kbd.xkb.variant = strdup(toml["xkb"]["variant"].value_or(""));
   config->input.kbd.xkb.options = strdup(toml["xkb"]["options"].value_or(""));
-  map_edge(&config->window.edge, toml["window"]["anchors"][0],
-           GTK_LAYER_SHELL_EDGE_BOTTOM);
-  map_edge(&config->window.edge2, toml["window"]["anchors"][1],
-           GTK_LAYER_SHELL_EDGE_LEFT);
-  map_layer(&config->window.layer, toml["window"]["layer"]);
-  map_bool(&config->window.layer_shell, toml["window"]["is-layer-shell"]);
-  map_bool(&config->window.paintable, toml["window"]["transparent"]);
+  config->window.edge =
+      map_edge(toml["window"]["anchors"][0], GTK_LAYER_SHELL_EDGE_BOTTOM);
+  config->window.edge2 =
+      map_edge(toml["window"]["anchors"][1], GTK_LAYER_SHELL_EDGE_LEFT);
+  config->window.layer = map_layer(toml["window"]["layer"]);
+  config->window.layer_shell = map_bool(toml["window"]["is-layer-shell"]);
+  config->window.paintable = map_bool(toml["window"]["transparent"]);
   toml["button"].as_table()->for_each([config, &index,
                                        size](auto &key, toml::table &value) {
     if (value["sym"].is_array()) {

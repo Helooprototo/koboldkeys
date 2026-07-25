@@ -56,7 +56,6 @@ void *keyboard_loop(void *args) {
         char key_name[64];
         xkb_keysym_get_name(keysym, key_name, sizeof(key_name));
         for (int i = 0; i < config->size; i++) {
-          // const char *token = strtok(button_sym, "|");
           //  Switching the labels of tha buttons
           if (level == TRUE) {
             struct ButtonLabelUpdate *upd =

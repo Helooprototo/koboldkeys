@@ -151,7 +151,7 @@ void *input_loop(void *args) {
       size_t malloc_size = sizeof(struct KeyboardInputConfig) +
                            conf->kbd.input.size * sizeof(struct ButtonConfig *);
       struct KeyboardInputConfig *kbd_conf = malloc(
-          malloc_size); // Dont forget to allocate for the button array pointer
+          malloc_size);
       memcpy(kbd_conf, &conf->kbd.input, malloc_size);
       kbd_conf->event = strdup(conf->kbd.devices[i]);
       pthread_t kbd;

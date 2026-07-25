@@ -5,9 +5,43 @@
 #include <sys/stat.h>
 #include <toml++/toml.hpp>
 #include <unistd.h>
+#include <xkbcommon/xkbcommon.h>
 
 #define MAX_SYM_LENGTH 256 // should be more than enough
+xkb_state* create_xkb(toml::node_view<toml::node> data) {
+  const char *layout = data["layout"].value_or("");
+  const char *variant = data["variant"].value_or("");
+  const char *options = data["options"].value_or("");
+  struct xkb_context *kbd_ctx;
+  kbd_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  if (!kbd_ctx) {
+    perror("Could not create keyboard context");
+  }
+  struct xkb_rule_names names = {NULL, NULL, layout, variant, options};
+  struct xkb_keymap *keymap;
+  keymap = xkb_keymap_new_from_names2(
+      kbd_ctx, &names, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
+  if (!keymap) {
+    perror("Could not create keymap");
+  }
+  return xkb_state_new(keymap);
 
+}
+void check_device(const char **out, toml::node_view<toml::node> data) {
+  struct stat st;
+  if (data.is_string()) {
+    stat(data.value_or(""), &st);
+    if (st.st_dev != 7) {
+      perror("File is probably not an input device!");
+      exit(1);
+    } else {
+      *out = strdup(data.value_or(""));
+      return;
+    }
+  } else {
+    *out = strdup("");
+  }
+}
 void map_bool(int *out, toml::node_view<toml::node> data) {
   if (data.is_string()) {
     char *str = strdup(data.value_or("true"));
@@ -146,18 +180,7 @@ struct Config *config() {
   } else {
     config->input.kbd.device_count = 0;
   }
-  // config->input.kbd.event = strdup(toml["input"]["keyboard"].value_or(""));
-  config->input.kbd.input.xkb = (XkbConfig *)malloc(sizeof(XkbConfig));
-  if (config->input.kbd.input.xkb == NULL) {
-    perror("Malloc failure");
-    exit(1);
-  }
-  config->input.kbd.input.xkb->layout =
-      strdup(toml["xkb"]["layout"].value_or(""));
-  config->input.kbd.input.xkb->variant =
-      strdup(toml["xkb"]["variant"].value_or(""));
-  config->input.kbd.input.xkb->options =
-      strdup(toml["xkb"]["options"].value_or(""));
+  config->input.kbd.input.state = create_xkb(toml["xkb"]);
   map_edge(&config->window.edge, toml["window"]["anchors"][0],
            GTK_LAYER_SHELL_EDGE_BOTTOM);
   map_edge(&config->window.edge2, toml["window"]["anchors"][1],

@@ -47,7 +47,7 @@ struct MouseConfig {
 struct KeyboardInputConfig{
   size_t size;
   char *event;
-  struct XkbConfig *xkb;
+  struct xkb_state* state;
   struct ButtonConfig* buttons[];
 };
 struct KeyboardConfig {

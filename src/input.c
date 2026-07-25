@@ -13,25 +13,7 @@
 void *keyboard_loop(void *args) {
   struct KeyboardInputConfig *config = (struct KeyboardInputConfig *)args;
 
-  struct xkb_context *kbd_ctx;
-  kbd_ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-  if (!kbd_ctx) {
-    perror("Could not create keyboard context");
-  }
-  struct xkb_keymap *keymap;
-  struct xkb_rule_names names = {NULL, NULL, .layout = config->xkb->layout,
-                                 .variant = config->xkb->variant,
-                                 config->xkb->options};
-  keymap = xkb_keymap_new_from_names2(
-      kbd_ctx, &names, XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
-  if (!keymap) {
-    perror("Could not create keymap");
-  }
-  struct xkb_state *state;
-  state = xkb_state_new(keymap);
-  if (!state) {
-    perror("Could not create state");
-  }
+  struct xkb_state *state = config->state;
   printf("Opening input device: %s \n", config->event);
   int input_device = open(config->event, O_RDONLY);
   if (input_device == -1) {

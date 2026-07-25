@@ -8,7 +8,7 @@
 
 #define MAX_SYM_LENGTH 256 // should be more than enough
 
-void check_device(const char **out, toml::node_view<toml::node> data) {
+char* check_device(toml::node_view<toml::node> data) {
   struct stat st;
   if (data.is_string()) {
     stat(data.value_or(""), &st);
@@ -16,11 +16,10 @@ void check_device(const char **out, toml::node_view<toml::node> data) {
       perror("File is probably not an input device!");
       exit(1);
     } else {
-      *out = strdup(data.value_or(""));
-      return;
+      return strdup(data.value_or(""));
     }
   } else {
-    *out = strdup("");
+    return strdup("");
   }
 }
 int map_bool(toml::node_view<toml::node> data) {
@@ -140,8 +139,8 @@ struct Config *config() {
   config->input.kbd.size = size;
   int index = 0;
 
-  check_device(&config->input.kbd.event, toml["input"]["keyboard"]);
-  check_device(&config->input.mouse.event, toml["input"]["mouse"]);
+  config->input.kbd.event = check_device( toml["input"]["keyboard"]);
+  config->input.mouse.event = check_device(toml["input"]["mouse"]);
   config->input.kbd.xkb.layout = strdup(toml["xkb"]["layout"].value_or(""));
   config->input.kbd.xkb.variant = strdup(toml["xkb"]["variant"].value_or(""));
   config->input.kbd.xkb.options = strdup(toml["xkb"]["options"].value_or(""));

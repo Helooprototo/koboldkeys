@@ -1,4 +1,4 @@
-#include "config.h"
+#include "structs.h"
 #include "input.h"
 #ifdef LAYER_SHELL
 #include <gtk-layer-shell/gtk-layer-shell.h>
@@ -66,13 +66,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
   GtkCssProvider *css = gtk_css_provider_new();
 
-  char *xdg_config = get_config_path();
-  char *path = malloc(strlen(xdg_config) + strlen("style.css") + 1);
+  char *path = malloc(strlen(conf->base_path) + strlen("style.css") + 1);
   if (path == NULL) {
     perror("Malloc failure");
   }
-  strcpy(path, xdg_config);
-  free(xdg_config);
+  strcpy(path, conf->base_path);
   strcat(path, "style.css");
   gtk_css_provider_load_from_file(css, g_file_new_for_path(path), NULL);
   free(path);

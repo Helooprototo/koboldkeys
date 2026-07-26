@@ -61,6 +61,7 @@ struct InputConfig {
   struct KeyboardConfig kbd;
 };
 struct Config {
+  char* base_path;
   struct WindowConfig window;
   struct InputConfig input;
 };

@@ -123,17 +123,29 @@ char *get_config_path() {
   }
   return path;
 }
-extern "C" struct Config *config();
-struct Config *config() {
+extern "C" struct Config *config(int argc, char** argv);
+struct Config *config(int argc, char**argv) {
   struct Config *config;
-  char *xdg_config = get_config_path();
+    int opt;
+  char* xdg_config = NULL;
+  while((opt=getopt(argc,argv,"c:"))!=-1){
+    switch(opt){
+      case 'c':
+        printf("config path set through opt: %s\n",optarg);
+        xdg_config=strdup(optarg);
+      break;
+    }
+  }
+  if(xdg_config==NULL){
+  xdg_config = get_config_path();
+  }
   char *path = (char *)malloc(strlen(xdg_config) + strlen("conf.toml") + 1);
   if (path == NULL) {
     perror("Malloc failure");
     exit(1);
   }
   strcpy(path, xdg_config);
-  free(xdg_config);
+
   strcat(path, "conf.toml");
   std::cout << "Using config path: " << path << std::endl;
   struct stat st;
@@ -154,6 +166,8 @@ struct Config *config() {
     perror("Malloc failure");
     exit(1);
   }
+  config->base_path = strdup(xdg_config);
+    free(xdg_config);
   config->input.kbd.input.size = size;
   int index = 0;
 

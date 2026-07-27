@@ -104,7 +104,7 @@ void *keyboard_loop(void *args) {
 }
 
 void *mouse_loop(void *args) {
-  struct MouseConfig *conf = (struct MouseConfig *)args;
+  struct MouseInputConfig *conf = (struct MouseInputConfig *)args;
   struct input_event ev;
   int mouse = open(conf->event, O_RDONLY);
   while (TRUE) {
@@ -128,20 +128,26 @@ void *mouse_loop(void *args) {
 
 void *input_loop(void *args) {
   struct InputConfig *conf = (struct InputConfig *)args;
-  if (conf->kbd.device_count > 0) {
-    for (int i = 0; i < conf->kbd.device_count; i++) {
+  if (conf->kbd.dev.device_count > 0) {
+    for (int i = 0; i < conf->kbd.dev.device_count; i++) {
       size_t malloc_size = sizeof(struct KeyboardInputConfig) +
                            conf->kbd.input.size * sizeof(struct ButtonConfig *);
       struct KeyboardInputConfig *kbd_conf = malloc(malloc_size);
       memcpy(kbd_conf, &conf->kbd.input, malloc_size);
-      kbd_conf->event = strdup(conf->kbd.devices[i]);
+      kbd_conf->event = strdup(conf->kbd.dev.devices[i]);
       pthread_t kbd;
       pthread_create(&kbd, NULL, keyboard_loop, kbd_conf);
     }
   }
-  if (strcmp(conf->mouse.event, "") != 0) {
-    pthread_t mouse;
-    pthread_create(&mouse, NULL, mouse_loop, &conf->mouse);
+  if (conf->mouse.dev.device_count > 0) {
+    for (int i = 0; i < conf->mouse.dev.device_count; i++) {
+      size_t malloc_size = sizeof(struct MouseInputConfig);
+      struct MouseInputConfig* mouse_conf = malloc(malloc_size);
+      memcpy(mouse_conf,&conf->mouse.input,malloc_size);
+      mouse_conf->event = strdup(conf->mouse.dev.devices[i]);
+      pthread_t mouse;
+      pthread_create(&mouse, NULL, mouse_loop, mouse_conf);
+    }
   }
   free(conf);
   return (void *)0;

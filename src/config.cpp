@@ -41,6 +41,42 @@ char *check_device(toml::node_view<toml::node> data) {
     return strdup("");
   }
 }
+void map_devices(DeviceConfig *config, toml::node_view<toml::node> data) {
+  config->device_count = 0;
+  if (data.is_array()) {
+    int device_index = 0;
+    config->devices = (char **)malloc(1 * sizeof(char *));
+    if (config->devices == NULL) {
+      perror("Malloc failure");
+      exit(1);
+    }
+    for (auto &&device : *data.as_array()) {
+      char *dev = check_device(toml::node_view<toml::node>(device));
+      if (dev != NULL) {
+        config->devices[device_index] = dev;
+        device_index += 1;
+        config->device_count = device_index;
+        config->devices = (char **)realloc(config->devices,
+                                           (device_index + 1) * sizeof(char *));
+        if (config->devices == NULL) {
+          perror("Malloc failure");
+          exit(1);
+        }
+      }
+    }
+  } else if (data.is_string()) {
+    char *dev = check_device(data);
+    if (dev != NULL) {
+      config->device_count = 1;
+      config->devices = (char **)malloc(1 * sizeof(char *));
+      config->devices[0] = strdup(data.value_or(""));
+    } else {
+      config->device_count = 0;
+    }
+  } else {
+    config->device_count = 0;
+  }
+}
 int map_bool(toml::node_view<toml::node> data) {
   if (data.is_string()) {
     char *str = strdup(data.value_or("true"));
@@ -170,36 +206,8 @@ struct Config *config(int argc, char **argv) {
   config->base_path = strdup(xdg_config);
   free(xdg_config);
   config->input.kbd.input.size = size;
-  config->input.mouse.event = check_device(toml["input"]["mouse"]);
-  if (toml["input"]["keyboard"].is_array()) {
-    int device_index = 0;
-    config->input.kbd.devices = (char **)malloc(1 * sizeof(char *));
-    if (config->input.kbd.devices == NULL) {
-      perror("Malloc failure");
-      exit(1);
-    }
-    for (auto &&device : *toml["input"]["keyboard"].as_array()) {
-      char *dev = check_device(toml::node_view<toml::node>(device));
-      if (dev != NULL) {
-        config->input.kbd.device_count = device_index + 1;
-        config->input.kbd.devices[device_index] = dev;
-        device_index += 1;
-        config->input.kbd.devices = (char **)realloc(
-            config->input.kbd.devices, (device_index + 1) * sizeof(char *));
-        if (config->input.kbd.devices == NULL) {
-          perror("Malloc failure");
-          exit(1);
-        }
-      }
-    }
-  } else if (toml["input"]["keyboard"].is_string()) {
-    config->input.kbd.device_count = 1;
-    config->input.kbd.devices = (char **)malloc(1 * sizeof(char *));
-    config->input.kbd.devices[0] =
-        strdup(toml["input"]["keyboard"].value_or(""));
-  } else {
-    config->input.kbd.device_count = 0;
-  }
+  map_devices(&config->input.mouse.dev, toml["input"]["mouse"]);
+  map_devices(&config->input.kbd.dev, toml["input"]["keyboard"]);
   config->input.kbd.input.state = create_xkb(toml["xkb"]);
   config->window.edge =
       map_edge(toml["window"]["anchors"][0], GTK_LAYER_SHELL_EDGE_BOTTOM);

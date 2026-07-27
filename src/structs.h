@@ -39,10 +39,18 @@ struct WindowConfig {
   int layer_shell;
   int paintable;
 };
-struct MouseConfig {
+struct DeviceConfig {
+  size_t device_count;
+  char **devices;
+};
+struct MouseInputConfig {
+  const char *event;
   GtkWidget *mouse_widget;
   GtkWidget *fixed;
-  const char *event;
+};
+struct MouseConfig {
+  struct DeviceConfig dev;
+  struct MouseInputConfig input;
 };
 struct KeyboardInputConfig {
   size_t size;
@@ -51,9 +59,7 @@ struct KeyboardInputConfig {
   struct ButtonConfig *buttons[];
 };
 struct KeyboardConfig {
-
-  size_t device_count;
-  char **devices;
+  struct DeviceConfig dev;
   struct KeyboardInputConfig input;
 };
 struct InputConfig {

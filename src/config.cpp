@@ -32,7 +32,8 @@ char *check_device(toml::node_view<toml::node> data) {
     stat(data.value_or(""), &st);
     if (st.st_dev != 7) {
       perror("File is probably not an input device!");
-      exit(1);
+      std::cout << "Ignoring device: " << data.value_or("") << std::endl;
+      return (char *)NULL;
     } else {
       return strdup(data.value_or(""));
     }
@@ -123,21 +124,21 @@ char *get_config_path() {
   }
   return path;
 }
-extern "C" struct Config *config(int argc, char** argv);
-struct Config *config(int argc, char**argv) {
+extern "C" struct Config *config(int argc, char **argv);
+struct Config *config(int argc, char **argv) {
   struct Config *config;
-    int opt;
-  char* xdg_config = NULL;
-  while((opt=getopt(argc,argv,"c:"))!=-1){
-    switch(opt){
-      case 'c':
-        printf("config path set through opt: %s\n",optarg);
-        xdg_config=strdup(optarg);
+  int opt;
+  char *xdg_config = NULL;
+  while ((opt = getopt(argc, argv, "c:")) != -1) {
+    switch (opt) {
+    case 'c':
+      std::cout << "config path set through opt: " << optarg << std::endl;
+      xdg_config = strdup(optarg);
       break;
     }
   }
-  if(xdg_config==NULL){
-  xdg_config = get_config_path();
+  if (xdg_config == NULL) {
+    xdg_config = get_config_path();
   }
   char *path = (char *)malloc(strlen(xdg_config) + strlen("conf.toml") + 1);
   if (path == NULL) {
@@ -167,25 +168,29 @@ struct Config *config(int argc, char**argv) {
     exit(1);
   }
   config->base_path = strdup(xdg_config);
-    free(xdg_config);
+  free(xdg_config);
   config->input.kbd.input.size = size;
-  int index = 0;
-
   config->input.mouse.event = check_device(toml["input"]["mouse"]);
   if (toml["input"]["keyboard"].is_array()) {
-    config->input.kbd.device_count =
-        toml["input"]["keyboard"].as_array()->size();
-    config->input.kbd.devices = (char **)malloc(
-        toml["input"]["keyboard"].as_array()->size() * sizeof(char *));
+    int device_index = 0;
+    config->input.kbd.devices = (char **)malloc(1 * sizeof(char *));
     if (config->input.kbd.devices == NULL) {
       perror("Malloc failure");
       exit(1);
     }
-    int device_index = 0;
     for (auto &&device : *toml["input"]["keyboard"].as_array()) {
-      config->input.kbd.devices[device_index] =
-          check_device(toml::node_view<toml::node>(device));
-      device_index += 1;
+      char *dev = check_device(toml::node_view<toml::node>(device));
+      if (dev != NULL) {
+        config->input.kbd.device_count = device_index + 1;
+        config->input.kbd.devices[device_index] = dev;
+        device_index += 1;
+        config->input.kbd.devices = (char **)realloc(
+            config->input.kbd.devices, (device_index + 1) * sizeof(char *));
+        if (config->input.kbd.devices == NULL) {
+          perror("Malloc failure");
+          exit(1);
+        }
+      }
     }
   } else if (toml["input"]["keyboard"].is_string()) {
     config->input.kbd.device_count = 1;
@@ -203,51 +208,56 @@ struct Config *config(int argc, char**argv) {
   config->window.layer = map_layer(toml["window"]["layer"]);
   config->window.layer_shell = map_bool(toml["window"]["is-layer-shell"]);
   config->window.paintable = map_bool(toml["window"]["transparent"]);
-  toml["button"].as_table()->for_each([config, &index,
-                                       size](auto &key, toml::table &value) {
-    config->input.kbd.input.buttons[index] =
-        (struct ButtonConfig *)malloc(sizeof(struct ButtonConfig));
-    if (value["sym"].is_array()) {
-      size_t sym_count = value["sym"].as_array()->size();
-      config->input.kbd.input.buttons[index]->sym_count = sym_count;
-      config->input.kbd.input.buttons[index]->syms =
-          (char **)malloc(sym_count * sizeof(char *));
-      if (config->input.kbd.input.buttons[index]->syms == NULL) {
-        perror("Malloc failure");
-        exit(1);
-      }
-      size_t sym_i = 0;
-      for (auto &&sym : *value["sym"].as_array()) {
-        config->input.kbd.input.buttons[index]->syms[sym_i] =
-            strdup(sym.value_or(""));
-        sym_i += 1;
-      };
-    } else if (value["sym"].is_string()) {
-      config->input.kbd.input.buttons[index]->sym_count = 1;
-      config->input.kbd.input.buttons[index]->syms =
-          (char **)malloc(1 * sizeof(char *));
-      if (config->input.kbd.input.buttons[index]->syms == NULL) {
-        perror("Malloc failure");
-        exit(1);
-      }
-      config->input.kbd.input.buttons[index]->syms[0] =
-          strdup(value["sym"].value_or(""));
-    }
+  int btn_index = 0;
+  toml["button"].as_table()->for_each(
+      [config, &btn_index, size](auto &key, toml::table &value) {
+        config->input.kbd.input.buttons[btn_index] =
+            (struct ButtonConfig *)malloc(sizeof(struct ButtonConfig));
+        if (value["sym"].is_array()) {
+          size_t sym_count = value["sym"].as_array()->size();
+          config->input.kbd.input.buttons[btn_index]->sym_count = sym_count;
+          config->input.kbd.input.buttons[btn_index]->syms =
+              (char **)malloc(sym_count * sizeof(char *));
+          if (config->input.kbd.input.buttons[btn_index]->syms == NULL) {
+            perror("Malloc failure");
+            exit(1);
+          }
+          size_t sym_i = 0;
+          for (auto &&sym : *value["sym"].as_array()) {
+            config->input.kbd.input.buttons[btn_index]->syms[sym_i] =
+                strdup(sym.value_or(""));
+            sym_i += 1;
+          };
+        } else if (value["sym"].is_string()) {
+          config->input.kbd.input.buttons[btn_index]->sym_count = 1;
+          config->input.kbd.input.buttons[btn_index]->syms =
+              (char **)malloc(1 * sizeof(char *));
+          if (config->input.kbd.input.buttons[btn_index]->syms == NULL) {
+            perror("Malloc failure");
+            exit(1);
+          }
+          config->input.kbd.input.buttons[btn_index]->syms[0] =
+              strdup(value["sym"].value_or(""));
+        } else {
+          std::cerr << "Button " << key.str() << " missing a symbolic! " << std::endl;
+          config->input.kbd.input.buttons[btn_index]->sym_count = 0;
+        }
 
-    config->input.kbd.input.buttons[index]->label =
-        strdup(value["label"].value_or(value["sym"].value_or("")));
-    config->input.kbd.input.buttons[index]->case_label =
-        strdup(value["case-label"].value_or(
-            config->input.kbd.input.buttons[index]->label));
-    config->input.kbd.input.buttons[index]->clicked_by = 0;
-    config->input.kbd.input.buttons[index]->coords.x = value["x"].value_or(0);
-    config->input.kbd.input.buttons[index]->coords.y =
-        value["y"].value_or(0) * -1;
-    config->input.kbd.input.buttons[index]->coords.width =
-        value["width"].value_or(1);
-    config->input.kbd.input.buttons[index]->coords.height =
-        value["height"].value_or(1);
-    index += 1;
-  });
+        config->input.kbd.input.buttons[btn_index]->label =
+            strdup(value["label"].value_or(value["sym"].value_or("")));
+        config->input.kbd.input.buttons[btn_index]->case_label =
+            strdup(value["case-label"].value_or(
+                config->input.kbd.input.buttons[btn_index]->label));
+        config->input.kbd.input.buttons[btn_index]->clicked_by = 0;
+        config->input.kbd.input.buttons[btn_index]->coords.x =
+            value["x"].value_or(0);
+        config->input.kbd.input.buttons[btn_index]->coords.y =
+            value["y"].value_or(0) * -1;
+        config->input.kbd.input.buttons[btn_index]->coords.width =
+            value["width"].value_or(1);
+        config->input.kbd.input.buttons[btn_index]->coords.height =
+            value["height"].value_or(1);
+        btn_index += 1;
+      });
   return config;
 }

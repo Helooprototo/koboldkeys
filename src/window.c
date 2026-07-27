@@ -1,5 +1,5 @@
-#include "structs.h"
 #include "input.h"
+#include "structs.h"
 #ifdef LAYER_SHELL
 #include <gtk-layer-shell/gtk-layer-shell.h>
 #endif
@@ -31,8 +31,9 @@ gboolean button_click_update(void *data) {
 
 static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
-  size_t malloc_size = sizeof(struct InputConfig) +
-                       conf->input.kbd.input.size * sizeof(struct ButtonConfig*);
+  size_t malloc_size =
+      sizeof(struct InputConfig) +
+      conf->input.kbd.input.size * sizeof(struct ButtonConfig *);
   struct InputConfig *in = malloc(malloc_size);
   if (in == NULL) {
     perror("Malloc failure");
@@ -87,7 +88,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
   // gtk_container_add(GTK_CONTAINER(box),quit);
   for (int i = 0; i < size; i++) {
     gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
-                    in->kbd.input.buttons[i]->coords.x, in->kbd.input.buttons[i]->coords.y,
+                    in->kbd.input.buttons[i]->coords.x,
+                    in->kbd.input.buttons[i]->coords.y,
                     in->kbd.input.buttons[i]->coords.width,
                     in->kbd.input.buttons[i]->coords.height);
   }

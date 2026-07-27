@@ -2,10 +2,10 @@
 #include <fcntl.h>
 #include <gtk/gtk.h>
 #include <linux/input.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <xkbcommon/xkbcommon.h>
-#include <stdatomic.h>
 #define DOWN 1
 #define UP 0
 #define REPEAT 2
@@ -75,7 +75,8 @@ void *keyboard_loop(void *args) {
               upd->flag = GTK_STATE_FLAG_CHECKED;
               g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                               NULL);
-              atomic_fetch_add((_Atomic int*)&config->buttons[i]->clicked_by,1);
+              atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
+                               1);
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
               if (config->buttons[i]->clicked_by <= 1) {
                 struct ButtonClickUpdate *upd =
@@ -90,7 +91,8 @@ void *keyboard_loop(void *args) {
                 g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                                 NULL);
               }
-              atomic_fetch_sub((_Atomic int*)&config->buttons[i]->clicked_by,1);
+              atomic_fetch_sub((_Atomic int *)&config->buttons[i]->clicked_by,
+                               1);
             }
           }
         }
@@ -130,8 +132,7 @@ void *input_loop(void *args) {
     for (int i = 0; i < conf->kbd.device_count; i++) {
       size_t malloc_size = sizeof(struct KeyboardInputConfig) +
                            conf->kbd.input.size * sizeof(struct ButtonConfig *);
-      struct KeyboardInputConfig *kbd_conf = malloc(
-          malloc_size);
+      struct KeyboardInputConfig *kbd_conf = malloc(malloc_size);
       memcpy(kbd_conf, &conf->kbd.input, malloc_size);
       kbd_conf->event = strdup(conf->kbd.devices[i]);
       pthread_t kbd;

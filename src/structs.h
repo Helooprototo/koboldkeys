@@ -12,7 +12,7 @@ struct ButtonCoordinates {
 struct ButtonConfig {
   const char *label;
   const char *case_label;
-  int clicked_by; //atomic
+  int clicked_by; // atomic
   struct ButtonCoordinates coords;
   GtkWidget *button;
   size_t sym_count;
@@ -44,11 +44,11 @@ struct MouseConfig {
   GtkWidget *fixed;
   const char *event;
 };
-struct KeyboardInputConfig{
+struct KeyboardInputConfig {
   size_t size;
   char *event;
-  struct xkb_state* state;
-  struct ButtonConfig* buttons[];
+  struct xkb_state *state;
+  struct ButtonConfig *buttons[];
 };
 struct KeyboardConfig {
 
@@ -61,7 +61,7 @@ struct InputConfig {
   struct KeyboardConfig kbd;
 };
 struct Config {
-  char* base_path;
+  char *base_path;
   struct WindowConfig window;
   struct InputConfig input;
 };

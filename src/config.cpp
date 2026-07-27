@@ -239,7 +239,8 @@ struct Config *config(int argc, char **argv) {
           config->input.kbd.input.buttons[btn_index]->syms[0] =
               strdup(value["sym"].value_or(""));
         } else {
-          std::cerr << "Button " << key.str() << " missing a symbolic! " << std::endl;
+          std::cerr << "Button " << key.str() << " missing a symbolic! "
+                    << std::endl;
           config->input.kbd.input.buttons[btn_index]->sym_count = 0;
         }
 

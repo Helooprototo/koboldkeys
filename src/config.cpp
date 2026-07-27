@@ -53,7 +53,7 @@ void map_devices(DeviceConfig *config, toml::node_view<toml::node> data) {
     for (auto &&device : *data.as_array()) {
       char *dev = check_device(toml::node_view<toml::node>(device));
       if (dev != NULL) {
-        config->devices[device_index] = dev;
+        config->devices[device_index] = strdup(dev);
         device_index += 1;
         config->device_count = device_index;
         config->devices = (char **)realloc(config->devices,
@@ -62,6 +62,7 @@ void map_devices(DeviceConfig *config, toml::node_view<toml::node> data) {
           perror("Malloc failure");
           exit(1);
         }
+        free(dev);
       }
     }
   } else if (data.is_string()) {
@@ -91,45 +92,50 @@ int map_bool(toml::node_view<toml::node> data) {
   }
 }
 int map_edge(toml::node_view<toml::node> edge, int def) {
+  int ret;
   if (edge.is_string()) {
     char *str = strdup(edge.value_or(""));
     if (strcasecmp(str, "LEFT") == 0) {
-      return GTK_LAYER_SHELL_EDGE_LEFT;
+      ret = GTK_LAYER_SHELL_EDGE_LEFT;
     } else if (strcasecmp(str, "RIGHT") == 0) {
-      return GTK_LAYER_SHELL_EDGE_RIGHT;
+      ret = GTK_LAYER_SHELL_EDGE_RIGHT;
     } else if (strcasecmp(str, "TOP") == 0) {
-      return GTK_LAYER_SHELL_EDGE_TOP;
+      ret = GTK_LAYER_SHELL_EDGE_TOP;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
-      return GTK_LAYER_SHELL_EDGE_BOTTOM;
+      ret = GTK_LAYER_SHELL_EDGE_BOTTOM;
     } else {
-      return def;
+      ret = def;
     }
     free(str);
   } else if (edge.is_integer()) {
-    return edge.value_or(def);
+    ret = edge.value_or(def);
   } else {
-    return def;
+    ret = def;
   }
+  return ret;
 }
 int map_layer(toml::node_view<toml::node> layer) {
+  int ret;
   if (layer.is_string()) {
     char *str = strdup(layer.value_or("overlay"));
     if (strcasecmp(str, "BACKGROUND") == 0) {
-      return GTK_LAYER_SHELL_LAYER_BACKGROUND;
+      ret = GTK_LAYER_SHELL_LAYER_BACKGROUND;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
-      return GTK_LAYER_SHELL_LAYER_BOTTOM;
+      ret = GTK_LAYER_SHELL_LAYER_BOTTOM;
     } else if (strcasecmp(str, "TOP") == 0) {
-      return GTK_LAYER_SHELL_LAYER_TOP;
+      ret = GTK_LAYER_SHELL_LAYER_TOP;
     } else if (strcasecmp(str, "OVERLAY") == 0) {
-      return GTK_LAYER_SHELL_LAYER_OVERLAY;
+      ret = GTK_LAYER_SHELL_LAYER_OVERLAY;
     } else {
-      return GTK_LAYER_SHELL_LAYER_OVERLAY;
+      ret = GTK_LAYER_SHELL_LAYER_OVERLAY;
     }
+    free(str);
   } else if (layer.is_integer()) {
-    return layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
+    ret = layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
   } else {
-    return GTK_LAYER_SHELL_LAYER_OVERLAY;
+    ret = GTK_LAYER_SHELL_LAYER_OVERLAY;
   }
+  return ret;
 }
 extern "C" char *get_config_path();
 char *get_config_path() {
@@ -268,5 +274,8 @@ struct Config *config(int argc, char **argv) {
             value["height"].value_or(1);
         btn_index += 1;
       });
+  config->input.should_quit = 0;
+  config->input.quit_cond = PTHREAD_COND_INITIALIZER;
+  config->input.mut = PTHREAD_MUTEX_INITIALIZER;
   return config;
 }

@@ -21,6 +21,7 @@ void *keyboard_loop(void *args) {
     return (void *)1;
   }
   struct input_event ev;
+  int prev_caps_level = 0;
   while (true) {
     if (read(input_device, &ev, sizeof(ev)) != sizeof(ev)) {
       perror("Failed to read event");
@@ -39,7 +40,7 @@ void *keyboard_loop(void *args) {
         xkb_keysym_get_name(keysym, key_name, sizeof(key_name));
         for (int i = 0; i < config->size; i++) {
           //  Switching the labels of tha buttons
-          if (level == TRUE) {
+          if (level == TRUE && level != prev_caps_level) {
             struct ButtonLabelUpdate *upd =
                 malloc(sizeof(struct ButtonLabelUpdate));
             if (upd == NULL) {
@@ -49,7 +50,7 @@ void *keyboard_loop(void *args) {
             upd->button = config->buttons[i]->button;
             upd->name = config->buttons[i]->case_label;
             g_idle_add(button_label_update, upd);
-          } else {
+          } else if (level != prev_caps_level) {
             struct ButtonLabelUpdate *upd =
                 malloc(sizeof(struct ButtonLabelUpdate));
             if (upd == NULL) {
@@ -96,6 +97,7 @@ void *keyboard_loop(void *args) {
             }
           }
         }
+        prev_caps_level = level;
         printf("Pressed Sym: %s\n", key_name);
       }
     }
@@ -128,6 +130,10 @@ void *mouse_loop(void *args) {
 
 void *input_loop(void *args) {
   struct InputConfig *conf = (struct InputConfig *)args;
+  pthread_t *kbd_threads =
+      malloc(conf->kbd.dev.device_count * sizeof(pthread_t));
+  pthread_t *mouse_threads =
+      malloc(conf->mouse.dev.device_count * sizeof(pthread_t));
   if (conf->kbd.dev.device_count > 0) {
     for (int i = 0; i < conf->kbd.dev.device_count; i++) {
       size_t malloc_size = sizeof(struct KeyboardInputConfig) +
@@ -135,20 +141,31 @@ void *input_loop(void *args) {
       struct KeyboardInputConfig *kbd_conf = malloc(malloc_size);
       memcpy(kbd_conf, &conf->kbd.input, malloc_size);
       kbd_conf->event = strdup(conf->kbd.dev.devices[i]);
-      pthread_t kbd;
-      pthread_create(&kbd, NULL, keyboard_loop, kbd_conf);
+      pthread_create(&kbd_threads[i], NULL, keyboard_loop, kbd_conf);
     }
   }
   if (conf->mouse.dev.device_count > 0) {
     for (int i = 0; i < conf->mouse.dev.device_count; i++) {
       size_t malloc_size = sizeof(struct MouseInputConfig);
-      struct MouseInputConfig* mouse_conf = malloc(malloc_size);
-      memcpy(mouse_conf,&conf->mouse.input,malloc_size);
+      struct MouseInputConfig *mouse_conf = malloc(malloc_size);
+      memcpy(mouse_conf, &conf->mouse.input, malloc_size);
       mouse_conf->event = strdup(conf->mouse.dev.devices[i]);
-      pthread_t mouse;
-      pthread_create(&mouse, NULL, mouse_loop, mouse_conf);
+      pthread_create(&mouse_threads[i], NULL, mouse_loop, mouse_conf);
     }
   }
+  pthread_mutex_lock(&conf->mut);
+  while (!conf->should_quit) {
+    pthread_cond_wait(&conf->quit_cond, &conf->mut);
+  }
+  pthread_mutex_unlock(&conf->mut);
+  for (int i; i < conf->kbd.dev.device_count; i++) {
+    pthread_cancel(kbd_threads[i]);
+  }
+  for (int i; i < conf->mouse.dev.device_count; i++) {
+    pthread_cancel(mouse_threads[i]);
+  }
+  free(kbd_threads);
+  free(mouse_threads);
   free(conf);
   return (void *)0;
 }

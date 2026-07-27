@@ -7,10 +7,27 @@
 #include <linux/input.h>
 #include <pthread.h>
 
-void destroy(GtkWidget *widget, gpointer data) {
-  g_application_quit(G_APPLICATION(data));
-}
+static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
+  struct InputConfig *conf = (struct InputConfig *)user_data;
 
+  pthread_mutex_lock(&conf->mut);
+  conf->should_quit = 1;
+  pthread_cond_signal(&conf->quit_cond);
+  pthread_mutex_unlock(&conf->mut);
+  for(int i=0;i<conf->kbd.dev.device_count;i++){
+    free(conf->kbd.dev.devices[i]);
+  }
+  if(conf->kbd.dev.device_count > 0){
+    free(conf->kbd.dev.devices);
+  }
+  for(int i=0;i<conf->mouse.dev.device_count;i++){
+    free(conf->mouse.dev.devices[i]);
+  }
+  if(conf->mouse.dev.device_count > 0){
+    free(conf->mouse.dev.devices);
+  }
+  return FALSE; // let GTK proceed to destroy the window
+}
 gboolean button_label_update(void *data) {
   struct ButtonLabelUpdate *update = (struct ButtonLabelUpdate *)data;
   gtk_button_set_label(GTK_BUTTON(update->button), update->name);
@@ -83,6 +100,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
   gtk_container_add(GTK_CONTAINER(window), box);
   gtk_container_add(GTK_CONTAINER(box), grid);
+  g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), in);
   // GtkWidget* quit = gtk_button_new();
   // g_signal_connect(GTK_BUTTON(quit),"clicked",G_CALLBACK(destroy),app);
   // gtk_container_add(GTK_CONTAINER(box),quit);
@@ -95,6 +113,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
   }
   pthread_t input_thread;
   pthread_create(&input_thread, NULL, input_loop, in);
+  free(conf->base_path);
   free(conf);
   gtk_widget_show_all(window);
 }

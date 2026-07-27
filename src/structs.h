@@ -63,6 +63,9 @@ struct KeyboardConfig {
   struct KeyboardInputConfig input;
 };
 struct InputConfig {
+  int should_quit;
+  pthread_cond_t quit_cond;
+  pthread_mutex_t mut;
   struct MouseConfig mouse;
   struct KeyboardConfig kbd;
 };

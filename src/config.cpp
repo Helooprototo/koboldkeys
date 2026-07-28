@@ -131,9 +131,26 @@ int map_layer(toml::node_view<toml::node> layer) {
     return GTK_LAYER_SHELL_LAYER_OVERLAY;
   }
 }
-extern "C" char *get_config_path();
-char *get_config_path() {
+extern "C" char *get_config_path(int argc, char **argv);
+char *get_config_path(int argc, char **argv) {
   char *path;
+  int opt;
+  while ((opt = getopt(argc, argv, "c:")) != -1) {
+    switch (opt) {
+    case 'c':
+      std::cout << "config path set through opt: " << optarg << std::endl;
+      if (optarg[strlen(optarg) - 1] != '/') {
+        // Insert trailing slash if not gi
+        path = (char*)malloc(strlen(optarg)+2); 
+        strcpy(path,optarg);
+        strcat(path,"/");
+      }else{
+        path = strdup(optarg);
+      }
+      return path;
+      break;
+    }
+  }
   if (getenv("XDG_CONFIG_HOME") == 0) {
     std::cout.flush();
     char *home = getenv("HOME");
@@ -145,9 +162,10 @@ char *get_config_path() {
     }
     strcpy(path, home);
     strcat(path, def);
+    return path;
   } else {
     char *xdg_config;
-    xdg_config =getenv("XDG_CONFIG_HOME");
+    xdg_config = getenv("XDG_CONFIG_HOME");
     path = (char *)malloc(strlen(xdg_config) + strlen("/koboldkeys/") + 1);
     if (path == NULL) {
       perror("Malloc failure");
@@ -155,25 +173,13 @@ char *get_config_path() {
     }
     strcpy(path, xdg_config);
     strcat(path, "/koboldkeys/");
+    return path;
   }
-  return path;
 }
 extern "C" struct Config *config(int argc, char **argv);
 struct Config *config(int argc, char **argv) {
   struct Config *config;
-  int opt;
-  char *xdg_config = NULL;
-  while ((opt = getopt(argc, argv, "c:")) != -1) {
-    switch (opt) {
-    case 'c':
-      std::cout << "config path set through opt: " << optarg << std::endl;
-      xdg_config = strdup(optarg);
-      break;
-    }
-  }
-  if (xdg_config == NULL) {
-    xdg_config = get_config_path();
-  }
+  char *xdg_config = get_config_path(argc, argv);
   char *path = (char *)malloc(strlen(xdg_config) + strlen("conf.toml") + 1);
   if (path == NULL) {
     perror("Malloc failure");

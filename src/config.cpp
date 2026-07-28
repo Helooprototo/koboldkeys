@@ -74,15 +74,15 @@ void map_devices(DeviceConfig *config, toml::node_view<toml::node> data) {
     } else {
       config->device_count = 0;
     }
+    free(dev);
   } else {
     config->device_count = 0;
   }
 }
 int map_bool(toml::node_view<toml::node> data) {
   if (data.is_string()) {
-    char *str = strdup(data.value_or("true"));
+    const char *str = data.value_or("true");
     return (strcasecmp(str, "true") == 0) ? 1 : 0;
-    free(str);
   } else if (data.is_integer()) {
     return data.value_or(1);
   } else if (data.is_boolean()) {
@@ -92,50 +92,44 @@ int map_bool(toml::node_view<toml::node> data) {
   }
 }
 int map_edge(toml::node_view<toml::node> edge, int def) {
-  int ret;
   if (edge.is_string()) {
-    char *str = strdup(edge.value_or(""));
+    const char *str = edge.value_or("");
     if (strcasecmp(str, "LEFT") == 0) {
-      ret = GTK_LAYER_SHELL_EDGE_LEFT;
+      return GTK_LAYER_SHELL_EDGE_LEFT;
     } else if (strcasecmp(str, "RIGHT") == 0) {
-      ret = GTK_LAYER_SHELL_EDGE_RIGHT;
+      return GTK_LAYER_SHELL_EDGE_RIGHT;
     } else if (strcasecmp(str, "TOP") == 0) {
-      ret = GTK_LAYER_SHELL_EDGE_TOP;
+      return GTK_LAYER_SHELL_EDGE_TOP;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
-      ret = GTK_LAYER_SHELL_EDGE_BOTTOM;
+      return GTK_LAYER_SHELL_EDGE_BOTTOM;
     } else {
-      ret = def;
+      return def;
     }
-    free(str);
   } else if (edge.is_integer()) {
-    ret = edge.value_or(def);
+    return edge.value_or(def);
   } else {
-    ret = def;
+    return def;
   }
-  return ret;
 }
 int map_layer(toml::node_view<toml::node> layer) {
-  int ret;
   if (layer.is_string()) {
-    char *str = strdup(layer.value_or("overlay"));
+    const char *str = layer.value_or("overlay");
     if (strcasecmp(str, "BACKGROUND") == 0) {
-      ret = GTK_LAYER_SHELL_LAYER_BACKGROUND;
+      return GTK_LAYER_SHELL_LAYER_BACKGROUND;
     } else if (strcasecmp(str, "BOTTOM") == 0) {
-      ret = GTK_LAYER_SHELL_LAYER_BOTTOM;
+      return GTK_LAYER_SHELL_LAYER_BOTTOM;
     } else if (strcasecmp(str, "TOP") == 0) {
-      ret = GTK_LAYER_SHELL_LAYER_TOP;
+      return GTK_LAYER_SHELL_LAYER_TOP;
     } else if (strcasecmp(str, "OVERLAY") == 0) {
-      ret = GTK_LAYER_SHELL_LAYER_OVERLAY;
+      return GTK_LAYER_SHELL_LAYER_OVERLAY;
     } else {
-      ret = GTK_LAYER_SHELL_LAYER_OVERLAY;
+      return GTK_LAYER_SHELL_LAYER_OVERLAY;
     }
-    free(str);
   } else if (layer.is_integer()) {
-    ret = layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
+    return layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
   } else {
-    ret = GTK_LAYER_SHELL_LAYER_OVERLAY;
+    return GTK_LAYER_SHELL_LAYER_OVERLAY;
   }
-  return ret;
 }
 extern "C" char *get_config_path();
 char *get_config_path() {
@@ -143,7 +137,7 @@ char *get_config_path() {
   if (getenv("XDG_CONFIG_HOME") == 0) {
     std::cout.flush();
     char *home = getenv("HOME");
-    char *def = strdup("/.config/koboldkeys/");
+    const char *def = "/.config/koboldkeys/";
     path = (char *)malloc(strlen(home) + strlen(def) + 1);
     if (path == NULL) {
       perror("Malloc failure");
@@ -151,17 +145,15 @@ char *get_config_path() {
     }
     strcpy(path, home);
     strcat(path, def);
-    free(def);
   } else {
     char *xdg_config;
-    xdg_config = strdup(getenv("XDG_CONFIG_HOME"));
+    xdg_config =getenv("XDG_CONFIG_HOME");
     path = (char *)malloc(strlen(xdg_config) + strlen("/koboldkeys/") + 1);
     if (path == NULL) {
       perror("Malloc failure");
       exit(1);
     }
     strcpy(path, xdg_config);
-    free(xdg_config);
     strcat(path, "/koboldkeys/");
   }
   return path;

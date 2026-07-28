@@ -152,7 +152,6 @@ char *get_config_path(int argc, char **argv) {
     }
   }
   if (getenv("XDG_CONFIG_HOME") == 0) {
-    std::cout.flush();
     char *home = getenv("HOME");
     const char *def = "/.config/koboldkeys/";
     path = (char *)malloc(strlen(home) + strlen(def) + 1);

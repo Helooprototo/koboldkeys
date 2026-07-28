@@ -27,6 +27,12 @@ struct ButtonLabelUpdate {
   const char *name;
   GtkWidget *button;
 };
+struct MouseMoveUpdate {
+  int x;
+  int y;
+  GtkWidget *fixed;
+  GtkWidget *mouse_widget;
+};
 struct XkbConfig {
   const char *layout;
   const char *variant;
@@ -38,6 +44,7 @@ struct WindowConfig {
   int edge2;
   int layer_shell;
   int paintable;
+  int mouse_padding;
 };
 struct DeviceConfig {
   size_t device_count;

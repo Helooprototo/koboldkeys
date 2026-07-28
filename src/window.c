@@ -13,20 +13,30 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   pthread_mutex_lock(&conf->mut);
   pthread_cond_signal(&conf->quit_cond);
   pthread_mutex_unlock(&conf->mut);
-  for(int i=0;i<conf->kbd.dev.device_count;i++){
+  for (int i = 0; i < conf->kbd.dev.device_count; i++) {
     free(conf->kbd.dev.devices[i]);
   }
-  if(conf->kbd.dev.device_count > 0){
+  if (conf->kbd.dev.device_count > 0) {
     free(conf->kbd.dev.devices);
   }
-  for(int i=0;i<conf->mouse.dev.device_count;i++){
+  for (int i = 0; i < conf->mouse.dev.device_count; i++) {
     free(conf->mouse.dev.devices[i]);
   }
-  if(conf->mouse.dev.device_count > 0){
+  if (conf->mouse.dev.device_count > 0) {
     free(conf->mouse.dev.devices);
   }
+  free(conf);
   return FALSE; // let GTK proceed to destroy the window
 }
+
+gboolean mouse_move_update(void *data) {
+  struct MouseMoveUpdate *update = (struct MouseMoveUpdate *)data;
+  gtk_fixed_move(GTK_FIXED(update->fixed), update->mouse_widget, update->x,
+                 update->y);
+  g_free(update);
+  return G_SOURCE_REMOVE;
+}
+
 gboolean button_label_update(void *data) {
   struct ButtonLabelUpdate *update = (struct ButtonLabelUpdate *)data;
   gtk_button_set_label(GTK_BUTTON(update->button), update->name);
@@ -56,10 +66,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
     exit(1);
   }
   memcpy(in, &conf->input, malloc_size);
-  int size = in->kbd.input.size;
+  int kbd_size = in->kbd.input.size;
   GtkWidget *window;
 
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < kbd_size; i++) {
     in->kbd.input.buttons[i]->button = gtk_button_new();
     gtk_button_set_label(GTK_BUTTON(in->kbd.input.buttons[i]->button),
                          in->kbd.input.buttons[i]->label);
@@ -67,6 +77,9 @@ static void activate(GtkApplication *app, gpointer user_data) {
   }
   GtkWidget *grid;
   GtkWidget *box;
+  in->mouse.input.fixed = gtk_fixed_new();
+  gtk_widget_set_size_request(in->mouse.input.fixed, conf->window.mouse_padding, conf->window.mouse_padding);
+  in->mouse.input.mouse_widget = gtk_button_new();
   grid = gtk_grid_new();
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
   window = gtk_application_window_new(app);
@@ -98,18 +111,23 @@ static void activate(GtkApplication *app, gpointer user_data) {
   gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
 
   gtk_container_add(GTK_CONTAINER(window), box);
-  gtk_container_add(GTK_CONTAINER(box), grid);
-  g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), in);
-  // GtkWidget* quit = gtk_button_new();
-  // g_signal_connect(GTK_BUTTON(quit),"clicked",G_CALLBACK(destroy),app);
-  // gtk_container_add(GTK_CONTAINER(box),quit);
-  for (int i = 0; i < size; i++) {
-    gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
-                    in->kbd.input.buttons[i]->coords.x,
-                    in->kbd.input.buttons[i]->coords.y,
-                    in->kbd.input.buttons[i]->coords.width,
-                    in->kbd.input.buttons[i]->coords.height);
+  if (in->mouse.dev.device_count > 0) {
+    gtk_container_add(GTK_CONTAINER(box), in->mouse.input.fixed);
+    gtk_fixed_put(GTK_FIXED(in->mouse.input.fixed),
+                  in->mouse.input.mouse_widget, 0, 100);
   }
+  if (in->kbd.dev.device_count > 0) {
+    gtk_container_add(GTK_CONTAINER(box), grid);
+    for (int i = 0; i < kbd_size; i++) {
+      gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
+                      in->kbd.input.buttons[i]->coords.x,
+                      in->kbd.input.buttons[i]->coords.y,
+                      in->kbd.input.buttons[i]->coords.width,
+                      in->kbd.input.buttons[i]->coords.height);
+    }
+  }
+  g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), in);
+
   pthread_t input_thread;
   pthread_create(&input_thread, NULL, input_loop, in);
   free(conf->base_path);

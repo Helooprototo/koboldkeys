@@ -2,6 +2,7 @@
 #define _WINDOW_H_
 
 #include "structs.h"
+gboolean mouse_move_update(void *data);
 gboolean button_label_update(void *data);
 gboolean button_click_update(void *data);
 void *create_overlay(struct Config *arg);

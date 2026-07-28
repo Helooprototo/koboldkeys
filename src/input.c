@@ -9,7 +9,8 @@
 #define DOWN 1
 #define UP 0
 #define REPEAT 2
-
+#define X 0
+#define Y 1
 void *keyboard_loop(void *args) {
   struct KeyboardInputConfig *config = (struct KeyboardInputConfig *)args;
 
@@ -115,13 +116,17 @@ void *mouse_loop(void *args) {
     }
     if (ev.type == EV_REL) {
       printf("Mouse event: %i %i\n", ev.code, ev.value);
-      if (ev.code == 0) {
-
-        gtk_fixed_move(GTK_FIXED(conf->fixed), conf->mouse_widget,
-                       1 + ev.value * 10, 100);
-      } else if (ev.code == 1) {
-        gtk_fixed_move(GTK_FIXED(conf->fixed), conf->mouse_widget, 1,
-                       100 + ev.value * 10);
+      struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
+      upd->fixed = conf->fixed;
+      upd->mouse_widget = conf->mouse_widget;
+      if (ev.code == X) {
+        upd->x = ev.value * 10;
+        upd->y = 100;
+        g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
+      } else if (ev.code == Y) {
+        upd->x = 0;
+        upd->y = ev.value * 10+100;
+        g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
       }
     }
   }
@@ -166,6 +171,5 @@ void *input_loop(void *args) {
   free(kbd_threads);
   free(mouse_threads);
   xkb_state_unref(conf->kbd.input.state);
-  free(conf);
   return (void *)0;
 }

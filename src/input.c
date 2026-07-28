@@ -154,9 +154,7 @@ void *input_loop(void *args) {
     }
   }
   pthread_mutex_lock(&conf->mut);
-  while (!conf->should_quit) {
-    pthread_cond_wait(&conf->quit_cond, &conf->mut);
-  }
+  pthread_cond_wait(&conf->quit_cond, &conf->mut);
   pthread_mutex_unlock(&conf->mut);
   for (int i; i < conf->kbd.dev.device_count; i++) {
     pthread_cancel(kbd_threads[i]);
@@ -164,6 +162,7 @@ void *input_loop(void *args) {
   for (int i; i < conf->mouse.dev.device_count; i++) {
     pthread_cancel(mouse_threads[i]);
   }
+  fflush(stdout);
   free(kbd_threads);
   free(mouse_threads);
   xkb_state_unref(conf->kbd.input.state);

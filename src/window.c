@@ -11,7 +11,6 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   struct InputConfig *conf = (struct InputConfig *)user_data;
 
   pthread_mutex_lock(&conf->mut);
-  conf->should_quit = 1;
   pthread_cond_signal(&conf->quit_cond);
   pthread_mutex_unlock(&conf->mut);
   for(int i=0;i<conf->kbd.dev.device_count;i++){

@@ -271,7 +271,6 @@ struct Config *config(int argc, char **argv) {
             value["height"].value_or(1);
         btn_index += 1;
       });
-  config->input.should_quit = 0;
   config->input.quit_cond = PTHREAD_COND_INITIALIZER;
   config->input.mut = PTHREAD_MUTEX_INITIALIZER;
   return config;

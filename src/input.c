@@ -166,6 +166,5 @@ void *input_loop(void *args) {
   free(kbd_threads);
   free(mouse_threads);
   xkb_state_unref(conf->kbd.input.state);
-  free(conf);
   return (void *)0;
 }

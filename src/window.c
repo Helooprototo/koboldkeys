@@ -25,6 +25,7 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   if(conf->mouse.dev.device_count > 0){
     free(conf->mouse.dev.devices);
   }
+  free(conf);
   return FALSE; // let GTK proceed to destroy the window
 }
 gboolean button_label_update(void *data) {

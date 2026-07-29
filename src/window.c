@@ -78,7 +78,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
   GtkWidget *grid;
   GtkWidget *box;
   in->mouse.input.fixed = gtk_fixed_new();
-  gtk_widget_set_size_request(in->mouse.input.fixed, conf->window.mouse_padding, conf->window.mouse_padding);
+  gtk_widget_set_size_request(in->mouse.input.fixed, conf->window.mouse_padding+10, 0);
   in->mouse.input.mouse_widget = gtk_button_new();
   grid = gtk_grid_new();
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
@@ -89,6 +89,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_layer_set_layer(GTK_WINDOW(window), conf->window.layer);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge, TRUE);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge2, TRUE);
+    gtk_layer_set_margin(GTK_WINDOW(window),conf->window.edge2,conf->window.layer_margin);
   }
 #endif
   gtk_window_set_title(GTK_WINDOW(window), "KoboldKeys");

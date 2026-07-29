@@ -45,6 +45,7 @@ struct WindowConfig {
   int layer_shell;
   int paintable;
   int mouse_padding;
+  int layer_margin;
 };
 struct DeviceConfig {
   size_t device_count;

@@ -119,13 +119,15 @@ void *mouse_loop(void *args) {
       struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
       upd->fixed = conf->fixed;
       upd->mouse_widget = conf->mouse_widget;
+      int x = gtk_widget_get_allocated_width(conf->fixed)/2;
+      int y = gtk_widget_get_allocated_height(conf->fixed)/2;
       if (ev.code == X) {
-        upd->x = ev.value * 10;
-        upd->y = 100;
+        upd->x = x+ev.value;
+        upd->y = y;
         g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
       } else if (ev.code == Y) {
-        upd->x = 0;
-        upd->y = ev.value * 10+100;
+        upd->x = x;
+        upd->y = y+ev.value;
         g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
       }
     }

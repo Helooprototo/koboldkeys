@@ -13,7 +13,7 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   pthread_mutex_lock(&conf->mut);
   pthread_cond_signal(&conf->quit_cond);
   pthread_mutex_unlock(&conf->mut);
-  return FALSE; 
+  return FALSE;
 }
 
 gboolean mouse_move_update(void *data) {
@@ -64,9 +64,6 @@ static void activate(GtkApplication *app, gpointer user_data) {
   }
   GtkWidget *grid;
   GtkWidget *box;
-  in->mouse.input.fixed = gtk_fixed_new();
-  gtk_widget_set_size_request(in->mouse.input.fixed, conf->window.mouse_padding+10, 0);
-  in->mouse.input.mouse_widget = gtk_button_new();
   grid = gtk_grid_new();
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
   window = gtk_application_window_new(app);
@@ -76,7 +73,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_layer_set_layer(GTK_WINDOW(window), conf->window.layer);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge, TRUE);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge2, TRUE);
-    gtk_layer_set_margin(GTK_WINDOW(window),conf->window.edge2,conf->window.layer_margin);
+    gtk_layer_set_margin(GTK_WINDOW(window), conf->window.edge2,
+                         conf->window.layer_margin);
   }
 #endif
   gtk_window_set_title(GTK_WINDOW(window), "KoboldKeys");
@@ -100,6 +98,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
 
   gtk_container_add(GTK_CONTAINER(window), box);
   if (in->mouse.dev.device_count > 0) {
+    in->mouse.input.fixed = gtk_fixed_new();
+    gtk_widget_set_size_request(in->mouse.input.fixed,
+                                conf->window.mouse_padding + 10, 0);
+    in->mouse.input.mouse_widget = gtk_button_new();
     gtk_container_add(GTK_CONTAINER(box), in->mouse.input.fixed);
     gtk_fixed_put(GTK_FIXED(in->mouse.input.fixed),
                   in->mouse.input.mouse_widget, 0, 100);

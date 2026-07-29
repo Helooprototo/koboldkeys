@@ -13,20 +13,7 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   pthread_mutex_lock(&conf->mut);
   pthread_cond_signal(&conf->quit_cond);
   pthread_mutex_unlock(&conf->mut);
-  for(int i=0;i<conf->kbd.dev.device_count;i++){
-    free(conf->kbd.dev.devices[i]);
-  }
-  if(conf->kbd.dev.device_count > 0){
-    free(conf->kbd.dev.devices);
-  }
-  for(int i=0;i<conf->mouse.dev.device_count;i++){
-    free(conf->mouse.dev.devices[i]);
-  }
-  if(conf->mouse.dev.device_count > 0){
-    free(conf->mouse.dev.devices);
-  }
-  free(conf);
-  return FALSE; // let GTK proceed to destroy the window
+  return FALSE;
 }
 gboolean button_label_update(void *data) {
   struct ButtonLabelUpdate *update = (struct ButtonLabelUpdate *)data;

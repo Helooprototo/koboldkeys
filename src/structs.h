@@ -43,24 +43,12 @@ struct KeyboardInputThreadContainer{
   pthread_t thread;
   struct KeyboardThreadConfig* thread_conf;
 };
-struct MouseInputThreadContainer{
-  pthread_t thread;
-  struct MouseThreadConfig* thread_conf;
-};
+
 struct DeviceConfig {
   size_t device_count;
   char **devices;
 };
-struct MouseThreadConfig {
-  char *event;
-  int is_running;
-  GtkWidget *mouse_widget;
-  GtkWidget *fixed;
-};
-struct MouseConfig {
-  struct DeviceConfig dev;
-  struct MouseThreadConfig input;
-};
+
 struct KeyboardThreadConfig {
   size_t size;
   char *event;
@@ -76,7 +64,6 @@ struct InputConfig {
   pthread_cond_t quit_cond;
   pthread_mutex_t mut;
   pthread_t input_thread;
-  struct MouseConfig mouse;
   struct KeyboardConfig kbd;
 };
 struct Config {

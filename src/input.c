@@ -11,23 +11,26 @@
 #define REPEAT 2
 
 void *keyboard_loop(void *args) {
-  struct KeyboardInputConfig *config = (struct KeyboardInputConfig *)args;
+  struct KeyboardThreadConfig *config = (struct KeyboardThreadConfig *)args;
 
   struct xkb_state *state = config->state;
   printf("Opening input device: %s \n", config->event);
   int input_device = open(config->event, O_RDONLY);
+  int flags = fcntl(input_device, F_GETFL, 0);
+  fcntl(input_device, flags | O_NONBLOCK);
   if (input_device == -1) {
     perror("error opening input device");
     return (void *)1;
   }
   struct input_event ev;
   int prev_caps_level = 0;
-  while (true) {
+
+  while (atomic_load((_Atomic int *)&config->is_running)) {
+    printf("bool: %i\n", atomic_load((_Atomic int *)&config->is_running));
     if (read(input_device, &ev, sizeof(ev)) != sizeof(ev)) {
       perror("Failed to read event");
       break;
     } else {
-
       // Only accept non-repeat Key inputs
       if (ev.type == EV_KEY && ev.value != REPEAT) {
         xkb_keycode_t keycode = ev.code + 8;
@@ -74,8 +77,8 @@ void *keyboard_loop(void *args) {
               upd->button = config->buttons[i]->button;
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
-              g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-                              NULL);
+              //g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+              //               NULL);
               atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
                                1);
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
@@ -89,8 +92,8 @@ void *keyboard_loop(void *args) {
                 upd->button = config->buttons[i]->button;
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
-                g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-                                NULL);
+                //g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                //                NULL);
               }
               atomic_fetch_sub((_Atomic int *)&config->buttons[i]->clicked_by,
                                1);
@@ -102,14 +105,17 @@ void *keyboard_loop(void *args) {
       }
     }
   }
+  free(config->event);
+  free(config);
+  fflush(stdout);
   return (void *)0;
 }
 
 void *mouse_loop(void *args) {
-  struct MouseInputConfig *conf = (struct MouseInputConfig *)args;
+  struct MouseThreadConfig *config = (struct MouseThreadConfig *)args;
   struct input_event ev;
-  int mouse = open(conf->event, O_RDONLY);
-  while (TRUE) {
+  int mouse = open(config->event, O_RDONLY);
+  while (atomic_load((_Atomic int *)&config->is_running)) {
     if (read(mouse, &ev, sizeof(ev)) != sizeof(ev)) {
       perror("Failed to read event");
     }
@@ -117,50 +123,58 @@ void *mouse_loop(void *args) {
       printf("Mouse event: %i %i\n", ev.code, ev.value);
       if (ev.code == 0) {
 
-        gtk_fixed_move(GTK_FIXED(conf->fixed), conf->mouse_widget,
+        gtk_fixed_move(GTK_FIXED(config->fixed), config->mouse_widget,
                        1 + ev.value * 10, 100);
       } else if (ev.code == 1) {
-        gtk_fixed_move(GTK_FIXED(conf->fixed), conf->mouse_widget, 1,
+        gtk_fixed_move(GTK_FIXED(config->fixed), config->mouse_widget, 1,
                        100 + ev.value * 10);
       }
     }
   }
+  free(config->event);
+  free(config);
   return (void *)0;
 }
 
 void *input_loop(void *args) {
   struct InputConfig *conf = (struct InputConfig *)args;
-  pthread_t *kbd_threads =
-      malloc(conf->kbd.dev.device_count * sizeof(pthread_t));
-  pthread_t *mouse_threads =
-      malloc(conf->mouse.dev.device_count * sizeof(pthread_t));
+  struct KeyboardInputThreadContainer *kbd_threads = malloc(
+      conf->kbd.dev.device_count * sizeof(struct KeyboardInputThreadContainer));
+  struct MouseInputThreadContainer *mouse_threads = malloc(
+      conf->mouse.dev.device_count * sizeof(struct MouseInputThreadContainer));
   if (conf->kbd.dev.device_count > 0) {
     for (int i = 0; i < conf->kbd.dev.device_count; i++) {
-      size_t malloc_size = sizeof(struct KeyboardInputConfig) +
+      size_t malloc_size = sizeof(struct KeyboardThreadConfig) +
                            conf->kbd.input.size * sizeof(struct ButtonConfig *);
-      struct KeyboardInputConfig *kbd_conf = malloc(malloc_size);
+      struct KeyboardThreadConfig *kbd_conf = malloc(malloc_size);
+      kbd_threads[i].thread_conf = kbd_conf;
       memcpy(kbd_conf, &conf->kbd.input, malloc_size);
       kbd_conf->event = strdup(conf->kbd.dev.devices[i]);
-      pthread_create(&kbd_threads[i], NULL, keyboard_loop, kbd_conf);
+      atomic_store((_Atomic int *)&kbd_conf->is_running, 1);
+      pthread_create(&kbd_threads[i].thread, NULL, keyboard_loop, kbd_conf);
     }
   }
   if (conf->mouse.dev.device_count > 0) {
     for (int i = 0; i < conf->mouse.dev.device_count; i++) {
-      size_t malloc_size = sizeof(struct MouseInputConfig);
-      struct MouseInputConfig *mouse_conf = malloc(malloc_size);
+      size_t malloc_size = sizeof(struct MouseThreadConfig);
+      struct MouseThreadConfig *mouse_conf = malloc(malloc_size);
       memcpy(mouse_conf, &conf->mouse.input, malloc_size);
+      mouse_threads[i].thread_conf = mouse_conf;
       mouse_conf->event = strdup(conf->mouse.dev.devices[i]);
-      pthread_create(&mouse_threads[i], NULL, mouse_loop, mouse_conf);
+      atomic_store((_Atomic int *)&mouse_conf->is_running, 1);
+      pthread_create(&mouse_threads[i].thread, NULL, mouse_loop, mouse_conf);
     }
   }
   pthread_mutex_lock(&conf->mut);
   pthread_cond_wait(&conf->quit_cond, &conf->mut);
   pthread_mutex_unlock(&conf->mut);
   for (int i = 0; i < conf->kbd.dev.device_count; i++) {
-    pthread_cancel(kbd_threads[i]);
+    atomic_store((_Atomic int *)&kbd_threads[i].thread_conf->is_running, 0);
+    pthread_join(kbd_threads[i].thread, NULL);
   }
   for (int i = 0; i < conf->mouse.dev.device_count; i++) {
-    pthread_cancel(mouse_threads[i]);
+    atomic_store((_Atomic int *)&mouse_threads[i].thread_conf->is_running, 0);
+    pthread_join(mouse_threads[i].thread, NULL);
   }
   free(kbd_threads);
   free(mouse_threads);

@@ -39,32 +39,43 @@ struct WindowConfig {
   int layer_shell;
   int paintable;
 };
+struct KeyboardInputThreadContainer{
+  pthread_t thread;
+  struct KeyboardThreadConfig* thread_conf;
+};
+struct MouseInputThreadContainer{
+  pthread_t thread;
+  struct MouseThreadConfig* thread_conf;
+};
 struct DeviceConfig {
   size_t device_count;
   char **devices;
 };
-struct MouseInputConfig {
-  const char *event;
+struct MouseThreadConfig {
+  char *event;
+  int is_running;
   GtkWidget *mouse_widget;
   GtkWidget *fixed;
 };
 struct MouseConfig {
   struct DeviceConfig dev;
-  struct MouseInputConfig input;
+  struct MouseThreadConfig input;
 };
-struct KeyboardInputConfig {
+struct KeyboardThreadConfig {
   size_t size;
   char *event;
+  int is_running; //atomic
   struct xkb_state *state;
   struct ButtonConfig *buttons[];
 };
 struct KeyboardConfig {
   struct DeviceConfig dev;
-  struct KeyboardInputConfig input;
+  struct KeyboardThreadConfig input;
 };
 struct InputConfig {
   pthread_cond_t quit_cond;
   pthread_mutex_t mut;
+  pthread_t input_thread;
   struct MouseConfig mouse;
   struct KeyboardConfig kbd;
 };

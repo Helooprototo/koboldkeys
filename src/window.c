@@ -9,10 +9,10 @@
 
 static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   struct InputConfig *conf = (struct InputConfig *)user_data;
-
   pthread_mutex_lock(&conf->mut);
   pthread_cond_signal(&conf->quit_cond);
   pthread_mutex_unlock(&conf->mut);
+  pthread_join(conf->input_thread, NULL);
   return FALSE;
 }
 gboolean button_label_update(void *data) {
@@ -98,8 +98,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
                     in->kbd.input.buttons[i]->coords.width,
                     in->kbd.input.buttons[i]->coords.height);
   }
-  pthread_t input_thread;
-  pthread_create(&input_thread, NULL, input_loop, in);
+  pthread_create(&in->input_thread, NULL, input_loop, in);
   free(conf->base_path);
   free(conf);
   gtk_widget_show_all(window);

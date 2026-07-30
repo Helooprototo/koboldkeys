@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.0.0)
 project(KoboldKeys)
 
-add_executable(koboldkeys main.c window.c input.c config.cpp)
+add_executable(koboldkeys src/main.c src/window.c src/input.c src/config.cpp)
 option(KOBOLDKEYS_FEATURE_LAYER_SHELL "Allow a layer shell window through gtk-layer-shell" ON)
 find_package(PkgConfig REQUIRED)
 
@@ -17,5 +17,5 @@ target_include_directories(koboldkeys PUBLIC ${GTK_INCLUDE_DIRS})
 target_link_libraries(koboldkeys PUBLIC ${GTK_LIBRARIES})
 target_link_libraries(koboldkeys PUBLIC ${TOML_LIBRARIES})
 target_link_libraries(koboldkeys PUBLIC ${XKB_LIBRARIES})
-target_compile_options(koboldkeys PUBLIC -fsanitize=address -fno-omit-frame-pointer -g)
-target_link_options(koboldkeys PUBLIC -fsanitize=address)
+#target_compile_options(koboldkeys PUBLIC -fsanitize=address -fno-omit-frame-pointer -g)
+#target_link_options(koboldkeys PUBLIC -fsanitize=address)

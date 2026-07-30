@@ -18,8 +18,8 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
 
 gboolean mouse_move_update(void *data) {
   struct MouseMoveUpdate *update = (struct MouseMoveUpdate *)data;
-  gtk_fixed_move(GTK_FIXED(update->fixed), update->mouse_widget, update->x,
-                 update->y);
+  GtkWidget *fixed = gtk_widget_get_parent(update->mouse_widget);
+  gtk_fixed_move(GTK_FIXED(fixed), update->mouse_widget, update->x, update->y);
   g_free(update);
   return G_SOURCE_REMOVE;
 }
@@ -58,13 +58,15 @@ static void activate(GtkApplication *app, gpointer user_data) {
   GtkWidget *window;
   for (int i = 0; i < mouse_size; i++) {
     in->mouse.input.buttons[i]->button = gtk_button_new();
-    gtk_widget_set_name(in->mouse.input.buttons[i]->button,in->mouse.input.buttons[i]->name);
+    gtk_widget_set_name(in->mouse.input.buttons[i]->button,
+                        in->mouse.input.buttons[i]->name);
   }
   for (int i = 0; i < kbd_size; i++) {
     in->kbd.input.buttons[i]->button = gtk_button_new();
     gtk_button_set_label(GTK_BUTTON(in->kbd.input.buttons[i]->button),
                          in->kbd.input.buttons[i]->label);
-    gtk_widget_set_name(in->kbd.input.buttons[i]->button, in->kbd.input.buttons[i]->name);
+    gtk_widget_set_name(in->kbd.input.buttons[i]->button,
+                        in->kbd.input.buttons[i]->name);
   }
   GtkWidget *grid;
   GtkWidget *box;
@@ -107,7 +109,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
   if (in->kbd.dev.device_count > 0) {
     gtk_container_add(GTK_CONTAINER(box), grid);
     for (int i = 0; i < kbd_size; i++) {
-      GtkStyleContext* cntx = gtk_widget_get_style_context(in->kbd.input.buttons[i]->button);
+      GtkStyleContext *cntx =
+          gtk_widget_get_style_context(in->kbd.input.buttons[i]->button);
       gtk_style_context_add_class(cntx, "keyboardbutton");
       gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
                       in->kbd.input.buttons[i]->coords.x,
@@ -122,11 +125,33 @@ static void activate(GtkApplication *app, gpointer user_data) {
       gtk_widget_set_size_request(in->mouse.input.buttons[i]->button,
                                   in->mouse.input.buttons[i]->coords.width,
                                   in->mouse.input.buttons[i]->coords.height);
-      GtkStyleContext* cntx = gtk_widget_get_style_context(in->mouse.input.buttons[i]->button);
-      gtk_style_context_add_class(cntx,"mousebutton"); 
+      GtkStyleContext *cntx =
+          gtk_widget_get_style_context(in->mouse.input.buttons[i]->button);
+      gtk_style_context_add_class(cntx, "mousebutton");
       gtk_fixed_put(GTK_FIXED(fixed), in->mouse.input.buttons[i]->button,
                     in->mouse.input.buttons[i]->coords.x,
                     in->mouse.input.buttons[i]->coords.y);
+    }
+    if (in->mouse.input.show_cursor) {
+      struct MouseCursorConfig *cursor = &in->mouse.input.movement_widget;
+      struct MouseCursorConfig *area = &in->mouse.input.movement_area;
+      cursor->widget = gtk_button_new();
+      area->widget = gtk_fixed_new();
+      gtk_widget_set_name(cursor->widget, "cursor");
+      gtk_widget_set_size_request(cursor->widget, cursor->coords.width,
+                                  cursor->coords.height);
+      gtk_widget_set_size_request(area->widget,
+                                  area->coords.width,
+                                  area->coords.height);
+      GtkStyleContext *cntx = gtk_widget_get_style_context(cursor->widget);
+      gtk_style_context_add_class(cntx, "mousebutton");
+      
+      gtk_fixed_put(GTK_FIXED(fixed), in->mouse.input.movement_area.widget,
+                    in->mouse.input.movement_area.coords.x,
+                    in->mouse.input.movement_area.coords.y);
+      gtk_fixed_put(GTK_FIXED(in->mouse.input.movement_area.widget),
+                    cursor->widget, in->mouse.input.movement_area.coords.x,
+                    in->mouse.input.movement_area.coords.y);
     }
   }
   g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), in);

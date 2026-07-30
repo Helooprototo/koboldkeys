@@ -28,7 +28,7 @@ void *keyboard_loop(void *args) {
   int prev_caps_level = 0;
   struct pollfd fds;
   fds.fd = input_device;
-  fds.events = POLLPRI;
+  fds.events = POLLIN;
   while (atomic_load((_Atomic int *)&config->is_running)) {
     int ret = poll(&fds, 1, 0);
     if (ret > 0 && (fds.revents & POLLIN)) {
@@ -119,7 +119,7 @@ void *mouse_loop(void *args) {
   int mouse = open(config->event, O_RDONLY);
   struct pollfd fds;
   fds.fd = mouse;
-  fds.events = POLLPRI;
+  fds.events = POLLIN;
   while (atomic_load((_Atomic int *)&config->is_running)) {
     int ret = poll(&fds, 1, 0);
     if (ret > 0 && (fds.revents & POLLIN)) {

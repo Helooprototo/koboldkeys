@@ -25,54 +25,65 @@ void *keyboard_loop(void *args) {
   }
   struct input_event ev;
   int prev_caps_level = 0;
-  struct pollfd fds[1];
-  fds[0].fd = input_device;
-  fds[0].events = POLLPRI;
+  struct pollfd fds;
+  fds.fd = input_device;
+  fds.events = POLLPRI;
   while (atomic_load((_Atomic int *)&config->is_running)) {
-    if (poll(fds, 1, 0)) {
-      perror("Failed to read event");
-      break;
-    } else {
-      if (fds[0].events == POLLPRI) {
-        // Only accept non-repeat Key inputs
-        read(input_device, &ev, sizeof(ev));
-        if (ev.type == EV_KEY && ev.value != REPEAT) {
-          xkb_keycode_t keycode = ev.code + 8;
-          xkb_state_update_key(state, keycode,
-                               ev.value == UP ? XKB_KEY_UP : XKB_KEY_DOWN);
-          // Kinda ugly hack to get the current caps state
-          int level = xkb_state_key_get_level(state, KEY_A + 8, 0);
-          xkb_keysym_t keysym = xkb_state_key_get_one_sym(state, keycode);
-          char key_name[64];
-          xkb_keysym_get_name(keysym, key_name, sizeof(key_name));
-          for (int i = 0; i < config->size; i++) {
-            //  Switching the labels of tha buttons
-            if (level == TRUE && level != prev_caps_level) {
-              struct ButtonLabelUpdate *upd =
-                  malloc(sizeof(struct ButtonLabelUpdate));
-              if (upd == NULL) {
-                perror("Malloc failure");
-                exit(1);
-              }
-              upd->button = config->buttons[i]->button;
-              upd->name = config->buttons[i]->case_label;
-              g_idle_add(button_label_update, upd);
-            } else if (level != prev_caps_level) {
-              struct ButtonLabelUpdate *upd =
-                  malloc(sizeof(struct ButtonLabelUpdate));
-              if (upd == NULL) {
-                perror("Malloc failure");
-                exit(1);
-              }
-              upd->button = config->buttons[i]->button;
-              upd->name = config->buttons[i]->label;
-              g_idle_add(button_label_update, upd);
+    int ret = poll(&fds, 1, 0);
+    if (ret > 0 && (fds.revents & POLLIN)) {
+      // Only accept non-repeat Key inputs
+      read(input_device, &ev, sizeof(ev));
+      if (ev.type == EV_KEY && ev.value != REPEAT) {
+        xkb_keycode_t keycode = ev.code + 8;
+        xkb_state_update_key(state, keycode,
+                             ev.value == UP ? XKB_KEY_UP : XKB_KEY_DOWN);
+        // Kinda ugly hack to get the current caps state
+        int level = xkb_state_key_get_level(state, KEY_A + 8, 0);
+        xkb_keysym_t keysym = xkb_state_key_get_one_sym(state, keycode);
+        char key_name[64];
+        xkb_keysym_get_name(keysym, key_name, sizeof(key_name));
+        for (int i = 0; i < config->size; i++) {
+          //  Switching the labels of tha buttons
+          if (level == TRUE && level != prev_caps_level) {
+            struct ButtonLabelUpdate *upd =
+                malloc(sizeof(struct ButtonLabelUpdate));
+            if (upd == NULL) {
+              perror("Malloc failure");
+              exit(1);
             }
-            // Color tha buttons if sym is pressed
-            for (int sym_i = 0; sym_i < config->buttons[i]->sym_count;
-                 sym_i++) {
-              char *sym = config->buttons[i]->syms[sym_i];
-              if (ev.value == DOWN && strcasecmp(key_name, sym) == 0) {
+            upd->button = config->buttons[i]->button;
+            upd->name = config->buttons[i]->case_label;
+            g_idle_add(button_label_update, upd);
+          } else if (level != prev_caps_level) {
+            struct ButtonLabelUpdate *upd =
+                malloc(sizeof(struct ButtonLabelUpdate));
+            if (upd == NULL) {
+              perror("Malloc failure");
+              exit(1);
+            }
+            upd->button = config->buttons[i]->button;
+            upd->name = config->buttons[i]->label;
+            g_idle_add(button_label_update, upd);
+          }
+          // Color tha buttons if sym is pressed
+          for (int sym_i = 0; sym_i < config->buttons[i]->sym_count; sym_i++) {
+            char *sym = config->buttons[i]->syms[sym_i];
+            if (ev.value == DOWN && strcasecmp(key_name, sym) == 0) {
+              struct ButtonClickUpdate *upd =
+                  malloc(sizeof(struct ButtonClickUpdate));
+              if (upd == NULL) {
+                perror("Malloc failure");
+                exit(1);
+              }
+              upd->button = config->buttons[i]->button;
+              upd->set = TRUE;
+              upd->flag = GTK_STATE_FLAG_CHECKED;
+              g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                              NULL);
+              atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
+                               1);
+            } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
+              if (config->buttons[i]->clicked_by <= 1) {
                 struct ButtonClickUpdate *upd =
                     malloc(sizeof(struct ButtonClickUpdate));
                 if (upd == NULL) {
@@ -80,34 +91,18 @@ void *keyboard_loop(void *args) {
                   exit(1);
                 }
                 upd->button = config->buttons[i]->button;
-                upd->set = TRUE;
+                upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
                 g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                                 NULL);
-                atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
-                                 1);
-              } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
-                if (config->buttons[i]->clicked_by <= 1) {
-                  struct ButtonClickUpdate *upd =
-                      malloc(sizeof(struct ButtonClickUpdate));
-                  if (upd == NULL) {
-                    perror("Malloc failure");
-                    exit(1);
-                  }
-                  upd->button = config->buttons[i]->button;
-                  upd->set = FALSE;
-                  upd->flag = GTK_STATE_FLAG_CHECKED;
-                  g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update,
-                                  upd, NULL);
-                }
-                atomic_fetch_sub((_Atomic int *)&config->buttons[i]->clicked_by,
-                                 1);
               }
+              atomic_fetch_sub((_Atomic int *)&config->buttons[i]->clicked_by,
+                               1);
             }
           }
-          prev_caps_level = level;
-          printf("Pressed Sym: %s\n", key_name);
         }
+        prev_caps_level = level;
+        printf("Pressed Sym: %s\n", key_name);
       }
     }
   }
@@ -121,15 +116,13 @@ void *mouse_loop(void *args) {
   struct MouseThreadConfig *config = (struct MouseThreadConfig *)args;
   struct input_event ev;
   int mouse = open(config->event, O_RDONLY);
-  struct pollfd fds[1];
-  fds[0].fd = mouse;
-  fds[0].events = POLLPRI;
+  struct pollfd fds;
+  fds.fd = mouse;
+  fds.events = POLLPRI;
   while (atomic_load((_Atomic int *)&config->is_running)) {
-    if (poll(fds, 1, 0)) {
-      perror("Failed to read event");
-    }
-    if (fds[0].revents == POLLPRI) {
-      read(mouse,&ev,sizeof(ev));
+    int ret = poll(&fds, 1, 0);
+    if (ret > 0 && (fds.revents & POLLIN)) {
+      read(mouse, &ev, sizeof(ev));
       if (ev.type == EV_REL) {
         printf("Mouse event: %i %i\n", ev.code, ev.value);
         if (ev.code == 0) {

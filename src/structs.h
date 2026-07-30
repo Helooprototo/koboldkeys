@@ -69,7 +69,7 @@ struct DeviceConfig {
 };
 struct MouseThreadConfig {
   char *event;
-  int is_running;
+  int is_running; // Atomic
   size_t size;
   struct MouseButtonConfig **buttons;
 };

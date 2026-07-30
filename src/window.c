@@ -9,10 +9,10 @@
 
 static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   struct InputConfig *conf = (struct InputConfig *)user_data;
-
   pthread_mutex_lock(&conf->mut);
   pthread_cond_signal(&conf->quit_cond);
   pthread_mutex_unlock(&conf->mut);
+  pthread_join(conf->input_thread, NULL);
   return FALSE;
 }
 

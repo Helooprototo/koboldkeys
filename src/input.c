@@ -76,8 +76,8 @@ void *keyboard_loop(void *args) {
               upd->button = config->buttons[i]->button;
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
-              //g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-              //               NULL);
+              g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                             NULL);
               atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
                                1);
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
@@ -91,8 +91,8 @@ void *keyboard_loop(void *args) {
                 upd->button = config->buttons[i]->button;
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
-                //g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-                //                NULL);
+                g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                                NULL);
               }
               atomic_fetch_sub((_Atomic int *)&config->buttons[i]->clicked_by,
                                1);

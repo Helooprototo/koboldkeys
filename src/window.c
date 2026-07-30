@@ -74,6 +74,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
   fixed = gtk_fixed_new();
   grid = gtk_grid_new();
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+  gtk_box_set_spacing(GTK_BOX(box),conf->window.mouse_padding);
   window = gtk_application_window_new(app);
 #ifdef LAYER_SHELL
   if (conf->window.layer_shell) {

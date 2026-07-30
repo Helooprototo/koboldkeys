@@ -26,7 +26,6 @@ void *keyboard_loop(void *args) {
   int prev_caps_level = 0;
 
   while (atomic_load((_Atomic int *)&config->is_running)) {
-    printf("bool: %i\n", atomic_load((_Atomic int *)&config->is_running));
     if (read(input_device, &ev, sizeof(ev)) != sizeof(ev)) {
       perror("Failed to read event");
       break;

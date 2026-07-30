@@ -33,7 +33,10 @@ void *keyboard_loop(void *args) {
     int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
       // Only accept non-repeat Key inputs
-      read(input_device, &ev, sizeof(ev));
+      if(read(input_device, &ev, sizeof(ev))!=sizeof(ev)){
+        perror("Read error");
+        break;
+      };
       if (ev.type == EV_KEY && ev.value != REPEAT) {
         xkb_keycode_t keycode = ev.code + 8;
         xkb_state_update_key(state, keycode,
@@ -133,7 +136,10 @@ void *mouse_loop(void *args) {
   while (atomic_load((_Atomic int *)&config->is_running)) {
     int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
-      read(mouse, &ev, sizeof(ev));
+      if(read(mouse, &ev, sizeof(ev)) != sizeof(ev)){
+        perror("Read error");
+        break;
+      };
       if (ev.type == EV_REL && config->show_cursor) {
         struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
         upd->mouse_widget = config->movement_widget.widget;

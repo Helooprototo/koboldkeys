@@ -65,8 +65,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
     in->kbd.input.buttons[i]->button = gtk_button_new();
     gtk_button_set_label(GTK_BUTTON(in->kbd.input.buttons[i]->button),
                          in->kbd.input.buttons[i]->label);
-    gtk_widget_set_name(in->kbd.input.buttons[i]->button,
-                        in->kbd.input.buttons[i]->name);
+    gtk_widget_set_size_request(in->kbd.input.buttons[i]->button,
+                                in->kbd.input.buttons[i]->coords.width,
+                                in->kbd.input.buttons[i]->coords.height);
+        gtk_widget_set_name(in->kbd.input.buttons[i]->button,
+                            in->kbd.input.buttons[i]->name);
   }
   GtkWidget *grid;
   GtkWidget *box;
@@ -74,7 +77,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
   fixed = gtk_fixed_new();
   grid = gtk_grid_new();
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
-  gtk_box_set_spacing(GTK_BOX(box),conf->window.mouse_padding);
+  gtk_box_set_spacing(GTK_BOX(box), conf->window.mouse_padding);
   window = gtk_application_window_new(app);
 #ifdef LAYER_SHELL
   if (conf->window.layer_shell) {
@@ -141,12 +144,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
       gtk_widget_set_name(cursor->widget, "cursor");
       gtk_widget_set_size_request(cursor->widget, cursor->coords.width,
                                   cursor->coords.height);
-      gtk_widget_set_size_request(area->widget,
-                                  area->coords.width,
+      gtk_widget_set_size_request(area->widget, area->coords.width,
                                   area->coords.height);
       GtkStyleContext *cntx = gtk_widget_get_style_context(cursor->widget);
       gtk_style_context_add_class(cntx, "mousebutton");
-      
+
       gtk_fixed_put(GTK_FIXED(fixed), in->mouse.input.movement_area.widget,
                     in->mouse.input.movement_area.coords.x,
                     in->mouse.input.movement_area.coords.y);

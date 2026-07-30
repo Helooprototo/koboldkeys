@@ -113,11 +113,84 @@ void *keyboard_loop(void *args) {
   return (void *)0;
 }
 
+void *mouse_loop(void *args) {
+  struct MouseThreadConfig *config = (struct MouseThreadConfig *)args;
+  struct input_event ev;
+  int mouse = open(config->event, O_RDONLY);
+  struct pollfd fds;
+  fds.fd = mouse;
+  fds.events = POLLIN;
+  while (atomic_load((_Atomic int *)&config->is_running)) {
+    int ret = poll(&fds, 1, 10);
+    if (ret > 0 && (fds.revents & POLLIN)) {
+      read(mouse, &ev, sizeof(ev));
+      if (ev.type == EV_REL && config->show_cursor) {
+        struct MouseMoveUpdate* upd = malloc(sizeof(struct MouseMoveUpdate));
+        upd->mouse_widget = config->movement_widget.widget;
+        upd->x=0;
+        upd->y=0;
+        if(ev.code == X){
+          upd->x = ev.value;
+        }else if(ev.code == Y){
+          upd->y = ev.value;
+        }
+        upd->x+=config->movement_widget.coords.x;
+        upd->y+=config->movement_widget.coords.y;
+        g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
+      } else if (ev.type == EV_KEY) {
+        for (int i = 0; i < config->size; i++) {
+          if (config->buttons[i]->key == ev.code) {
+            if (ev.value == DOWN) {
+              struct ButtonClickUpdate *upd =
+                  malloc(sizeof(struct ButtonClickUpdate));
+              if (upd == NULL) {
+                perror("Malloc failure");
+                exit(1);
+              }
+              upd->button = config->buttons[i]->button;
+              upd->set = TRUE;
+              upd->flag = GTK_STATE_FLAG_CHECKED;
+              g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                              NULL);
+              atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
+                               1);
+            } else if (ev.value == UP) {
+              if (config->buttons[i]->clicked_by <= 1) {
+                struct ButtonClickUpdate *upd =
+                    malloc(sizeof(struct ButtonClickUpdate));
+                if (upd == NULL) {
+                  perror("Malloc failure");
+                  exit(1);
+                }
+                upd->button = config->buttons[i]->button;
+                upd->set = FALSE;
+                upd->flag = GTK_STATE_FLAG_CHECKED;
+                g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                                NULL);
+              }
+              atomic_fetch_sub((_Atomic int *)&config->buttons[i]->clicked_by,
+                               1);
+            }
+          }
+        }
+      }
+    }
+  }
+  for(int i=0;i<config->size;i++){
+    free(config->buttons[i]);
+  }
+  free(config->buttons);
+  free(config->event);
+  free(config);
+  return (void *)0;
+}
+
 void *input_loop(void *args) {
   struct InputConfig *conf = (struct InputConfig *)args;
   struct KeyboardInputThreadContainer *kbd_threads = malloc(
       conf->kbd.dev.device_count * sizeof(struct KeyboardInputThreadContainer));
-
+  struct MouseInputThreadContainer *mouse_threads = malloc(
+      conf->mouse.dev.device_count * sizeof(struct MouseInputThreadContainer));
   if (conf->kbd.dev.device_count > 0) {
     for (int i = 0; i < conf->kbd.dev.device_count; i++) {
       size_t malloc_size = sizeof(struct KeyboardThreadConfig) +
@@ -130,7 +203,17 @@ void *input_loop(void *args) {
       pthread_create(&kbd_threads[i].thread, NULL, keyboard_loop, kbd_conf);
     }
   }
-
+  if (conf->mouse.dev.device_count > 0) {
+    for (int i = 0; i < conf->mouse.dev.device_count; i++) {
+      size_t malloc_size = sizeof(struct MouseThreadConfig);
+      struct MouseThreadConfig *mouse_conf = malloc(malloc_size);
+      memcpy(mouse_conf, &conf->mouse.input, malloc_size);
+      mouse_threads[i].thread_conf = mouse_conf;
+      mouse_conf->event = strdup(conf->mouse.dev.devices[i]);
+      atomic_store((_Atomic int *)&mouse_conf->is_running, 1);
+      pthread_create(&mouse_threads[i].thread, NULL, mouse_loop, mouse_conf);
+    }
+  }
   pthread_mutex_lock(&conf->mut);
   pthread_cond_wait(&conf->quit_cond, &conf->mut);
   pthread_mutex_unlock(&conf->mut);
@@ -138,14 +221,24 @@ void *input_loop(void *args) {
     atomic_store((_Atomic int *)&kbd_threads[i].thread_conf->is_running, 0);
     pthread_join(kbd_threads[i].thread, NULL);
   }
-
+  for (int i = 0; i < conf->mouse.dev.device_count; i++) {
+    atomic_store((_Atomic int *)&mouse_threads[i].thread_conf->is_running, 0);
+    pthread_join(mouse_threads[i].thread, NULL);
+  }
   free(kbd_threads);
+  free(mouse_threads);
   xkb_state_unref(conf->kbd.input.state);
   for (int i = 0; i < conf->kbd.dev.device_count; i++) {
     free(conf->kbd.dev.devices[i]);
   }
   if (conf->kbd.dev.device_count > 0) {
     free(conf->kbd.dev.devices);
+  }
+  for (int i = 0; i < conf->mouse.dev.device_count; i++) {
+    free(conf->mouse.dev.devices[i]);
+  }
+  if (conf->mouse.dev.device_count > 0) {
+    free(conf->mouse.dev.devices);
   }
   free(conf);
   return (void *)0;

@@ -221,6 +221,7 @@ struct Config *config(int argc, char **argv) {
   config->base_path = strdup(xdg_config);
   free(xdg_config);
   config->input.kbd.input.size = size;
+  map_devices(&config->input.mouse.dev, toml["input"]["mouse"]);
   map_devices(&config->input.kbd.dev, toml["input"]["keyboard"]);
   config->input.kbd.input.state = create_xkb(toml["xkb"]);
   config->window.edge =

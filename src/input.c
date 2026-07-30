@@ -174,6 +174,7 @@ void *mouse_loop(void *args) {
           }
         }
       }
+      printf("Pressed mouse key: %i\n",ev.code);
     }
   }
   for(int i=0;i<config->size;i++){

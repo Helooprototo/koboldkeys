@@ -1,11 +1,11 @@
-button{
+.keyboardbutton{
     color: black;
     font: 24px "impact"
 }
-button:checked{
+.keyboardbutton:checked{
     background:greenyellow;
 }
-button:not(:checked){
+.keyboardbutton:not(:checked){
     background:white;
 }
 

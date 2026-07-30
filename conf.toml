@@ -38,7 +38,7 @@ height=1
 # Symbolic can be an array to map multiple keys
 sym=["shift_l","shift_r"]
 label="SHIFT"
-x=-11
+x=-1
 y=-1
 [button.4]
 sym="W"
@@ -54,5 +54,7 @@ x=3
 [button.7]
 sym="D"
 x=4
-
+[button.q]
+sym="Q"
+x=-1
 [mousebutton]

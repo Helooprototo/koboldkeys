@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <gtk/gtk.h>
 #include <linux/input.h>
+#include <poll.h>
 #include <stdatomic.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -25,13 +26,14 @@ void *keyboard_loop(void *args) {
   }
   struct input_event ev;
   int prev_caps_level = 0;
-
+  struct pollfd fds;
+  fds.fd = input_device;
+  fds.events = POLLPRI;
   while (atomic_load((_Atomic int *)&config->is_running)) {
-    if (read(input_device, &ev, sizeof(ev)) != sizeof(ev)) {
-      perror("Failed to read event");
-      break;
-    } else {
+    int ret = poll(&fds, 1, 0);
+    if (ret > 0 && (fds.revents & POLLIN)) {
       // Only accept non-repeat Key inputs
+      read(input_device, &ev, sizeof(ev));
       if (ev.type == EV_KEY && ev.value != REPEAT) {
         xkb_keycode_t keycode = ev.code + 8;
         xkb_state_update_key(state, keycode,
@@ -78,7 +80,7 @@ void *keyboard_loop(void *args) {
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
               g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-                             NULL);
+                              NULL);
               atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
                                1);
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
@@ -115,25 +117,29 @@ void *mouse_loop(void *args) {
   struct MouseThreadConfig *config = (struct MouseThreadConfig *)args;
   struct input_event ev;
   int mouse = open(config->event, O_RDONLY);
+  struct pollfd fds;
+  fds.fd = mouse;
+  fds.events = POLLPRI;
   while (atomic_load((_Atomic int *)&config->is_running)) {
-    if (read(mouse, &ev, sizeof(ev)) != sizeof(ev)) {
-      perror("Failed to read event");
-    }
-    if (ev.type == EV_REL) {
-      printf("Mouse event: %i %i\n", ev.code, ev.value);
-      struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
-      upd->fixed = config->fixed;
-      upd->mouse_widget = config->mouse_widget;
-      int x = gtk_widget_get_allocated_width(config->fixed) / 2;
-      int y = gtk_widget_get_allocated_height(config->fixed) / 2;
-      if (ev.code == X) {
-        upd->x = x + ev.value;
-        upd->y = y;
-        g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
-      } else if (ev.code == Y) {
-        upd->x = x;
-        upd->y = y + ev.value;
-        g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
+    int ret = poll(&fds, 1, 0);
+    if (ret > 0 && (fds.revents & POLLIN)) {
+      read(mouse, &ev, sizeof(ev));
+      if (ev.type == EV_REL) {
+        printf("Mouse event: %i %i\n", ev.code, ev.value);
+        struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
+        upd->fixed = config->fixed;
+        upd->mouse_widget = config->mouse_widget;
+        int x = gtk_widget_get_allocated_width(config->fixed) / 2;
+        int y = gtk_widget_get_allocated_height(config->fixed) / 2;
+        if (ev.code == X) {
+          upd->x = x + ev.value;
+          upd->y = y;
+          g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
+        } else if (ev.code == Y) {
+          upd->x = x;
+          upd->y = y + ev.value;
+          g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
+        }
       }
     }
   }

@@ -58,12 +58,13 @@ static void activate(GtkApplication *app, gpointer user_data) {
   GtkWidget *window;
   for (int i = 0; i < mouse_size; i++) {
     in->mouse.input.buttons[i]->button = gtk_button_new();
+    gtk_widget_set_name(in->mouse.input.buttons[i]->button,in->mouse.input.buttons[i]->name);
   }
   for (int i = 0; i < kbd_size; i++) {
     in->kbd.input.buttons[i]->button = gtk_button_new();
     gtk_button_set_label(GTK_BUTTON(in->kbd.input.buttons[i]->button),
                          in->kbd.input.buttons[i]->label);
-    gtk_widget_set_name(in->kbd.input.buttons[i]->button, "unclicked");
+    gtk_widget_set_name(in->kbd.input.buttons[i]->button, in->kbd.input.buttons[i]->name);
   }
   GtkWidget *grid;
   GtkWidget *box;
@@ -106,6 +107,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
   if (in->kbd.dev.device_count > 0) {
     gtk_container_add(GTK_CONTAINER(box), grid);
     for (int i = 0; i < kbd_size; i++) {
+      GtkStyleContext* cntx = gtk_widget_get_style_context(in->kbd.input.buttons[i]->button);
+      gtk_style_context_add_class(cntx, "keyboardbutton");
       gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
                       in->kbd.input.buttons[i]->coords.x,
                       in->kbd.input.buttons[i]->coords.y,
@@ -119,6 +122,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
       gtk_widget_set_size_request(in->mouse.input.buttons[i]->button,
                                   in->mouse.input.buttons[i]->coords.width,
                                   in->mouse.input.buttons[i]->coords.height);
+      GtkStyleContext* cntx = gtk_widget_get_style_context(in->mouse.input.buttons[i]->button);
+      gtk_style_context_add_class(cntx,"mousebutton"); 
       gtk_fixed_put(GTK_FIXED(fixed), in->mouse.input.buttons[i]->button,
                     in->mouse.input.buttons[i]->coords.x,
                     in->mouse.input.buttons[i]->coords.y);

@@ -242,6 +242,7 @@ struct Config *config(int argc, char **argv) {
     config->input.mouse.input.buttons[btn_index]->coords.width =
         value["width"].value_or(1);
     config->input.mouse.input.buttons[btn_index]->clicked_by = 0;
+    config->input.mouse.input.buttons[btn_index]->name = strdup(std::string(key).c_str());
     btn_index += 1;
   });
   btn_index = 0;
@@ -279,6 +280,8 @@ struct Config *config(int argc, char **argv) {
                     << std::endl;
           config->input.kbd.input.buttons[btn_index]->sym_count = 0;
         }
+        config->input.kbd.input.buttons[btn_index]->name =
+            strdup(std::string(key).c_str());
 
         config->input.kbd.input.buttons[btn_index]->label =
             strdup(value["label"].value_or(value["sym"].value_or("")));

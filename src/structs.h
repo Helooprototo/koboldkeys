@@ -12,17 +12,19 @@ struct ButtonCoordinates {
 struct ButtonConfig {
   const char *label;
   const char *case_label;
+  const char *name;
   int clicked_by; // atomic
   struct ButtonCoordinates coords;
   GtkWidget *button;
   size_t sym_count;
   char **syms;
 };
-struct MouseButtonConfig{
+struct MouseButtonConfig {
   int key;
   int clicked_by; // atomic
   struct ButtonCoordinates coords;
-  GtkWidget* button;
+  const char *name;
+  GtkWidget *button;
 };
 struct ButtonClickUpdate {
   int set;
@@ -53,13 +55,13 @@ struct WindowConfig {
   int mouse_padding;
   int layer_margin;
 };
-struct KeyboardInputThreadContainer{
+struct KeyboardInputThreadContainer {
   pthread_t thread;
-  struct KeyboardThreadConfig* thread_conf;
+  struct KeyboardThreadConfig *thread_conf;
 };
-struct MouseInputThreadContainer{
+struct MouseInputThreadContainer {
   pthread_t thread;
-  struct MouseThreadConfig* thread_conf;
+  struct MouseThreadConfig *thread_conf;
 };
 struct DeviceConfig {
   size_t device_count;
@@ -78,7 +80,7 @@ struct MouseConfig {
 struct KeyboardThreadConfig {
   size_t size;
   char *event;
-  int is_running; //atomic
+  int is_running; // atomic
   struct xkb_state *state;
   struct ButtonConfig *buttons[];
 };

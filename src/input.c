@@ -173,6 +173,7 @@ void *mouse_loop(void *args) {
             }
           }
         }
+        printf("Pressed mouse button: %i\n",ev.code);
       }
     }
   }

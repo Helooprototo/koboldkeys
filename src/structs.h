@@ -10,9 +10,9 @@ struct ButtonCoordinates {
   int height;
 };
 struct ButtonConfig {
-  const char *label;
-  const char *case_label;
-  const char *name;
+  char *label;
+  char *case_label;
+  char *name;
   int clicked_by; // atomic
   struct ButtonCoordinates coords;
   GtkWidget *button;
@@ -26,9 +26,9 @@ struct MouseButtonConfig {
   const char *name;
   GtkWidget *button;
 };
-struct MouseCursorConfig{
+struct MouseCursorConfig {
   struct ButtonCoordinates coords;
-  GtkWidget* widget;
+  GtkWidget *widget;
 };
 struct ButtonClickUpdate {
   int set;

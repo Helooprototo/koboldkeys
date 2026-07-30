@@ -107,6 +107,16 @@ void *keyboard_loop(void *args) {
       }
     }
   }
+  for(int i=0;i<config->size;i++){
+    for(int x=0;x<config->buttons[i]->sym_count;x++){
+      free(config->buttons[i]->syms[x]);
+    }
+    free(config->buttons[i]->name);
+    free(config->buttons[i]->case_label);
+    free(config->buttons[i]->label);
+    free(config->buttons[i]->syms);
+    free(config->buttons[i]);
+  }
   free(config->event);
   free(config);
   fflush(stdout);

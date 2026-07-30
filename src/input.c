@@ -125,17 +125,17 @@ void *mouse_loop(void *args) {
     if (ret > 0 && (fds.revents & POLLIN)) {
       read(mouse, &ev, sizeof(ev));
       if (ev.type == EV_REL && config->show_cursor) {
-        struct MouseMoveUpdate* upd = malloc(sizeof(struct MouseMoveUpdate));
+        struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
         upd->mouse_widget = config->movement_widget.widget;
-        upd->x=0;
-        upd->y=0;
-        if(ev.code == X){
+        upd->x = 0;
+        upd->y = 0;
+        if (ev.code == X) {
           upd->x = ev.value;
-        }else if(ev.code == Y){
+        } else if (ev.code == Y) {
           upd->y = ev.value;
         }
-        upd->x+=config->movement_widget.coords.x;
-        upd->y+=config->movement_widget.coords.y;
+        upd->x += config->movement_widget.coords.x;
+        upd->y += config->movement_widget.coords.y;
         g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
       } else if (ev.type == EV_KEY) {
         for (int i = 0; i < config->size; i++) {
@@ -173,11 +173,11 @@ void *mouse_loop(void *args) {
             }
           }
         }
+        printf("Pressed mouse key: %i\n", ev.code);
       }
-      printf("Pressed mouse key: %i\n",ev.code);
     }
   }
-  for(int i=0;i<config->size;i++){
+  for (int i = 0; i < config->size; i++) {
     free(config->buttons[i]);
   }
   free(config->buttons);

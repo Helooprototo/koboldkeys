@@ -188,6 +188,7 @@ void *mouse_loop(void *args) {
     }
   }
   for (int i = 0; i < config->size; i++) {
+    free(config->buttons[i]->name);
     free(config->buttons[i]);
   }
   free(config->buttons);

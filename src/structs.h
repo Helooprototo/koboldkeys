@@ -23,7 +23,7 @@ struct MouseButtonConfig {
   int key;
   int clicked_by; // atomic
   struct ButtonCoordinates coords;
-  const char *name;
+  char *name;
   GtkWidget *button;
 };
 struct MouseCursorConfig {

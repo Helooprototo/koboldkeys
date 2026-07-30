@@ -118,8 +118,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
   }
   g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), in);
 
-  pthread_t input_thread;
-  pthread_create(&input_thread, NULL, input_loop, in);
+  pthread_create(&in->input_thread, NULL, input_loop, in);
   free(conf->base_path);
   free(conf);
   gtk_widget_show_all(window);

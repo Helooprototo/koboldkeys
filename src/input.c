@@ -125,20 +125,42 @@ void *mouse_loop(void *args) {
     if (ret > 0 && (fds.revents & POLLIN)) {
       read(mouse, &ev, sizeof(ev));
       if (ev.type == EV_REL) {
-        printf("Mouse event: %i %i\n", ev.code, ev.value);
-        struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
-        upd->fixed = config->fixed;
-        upd->mouse_widget = config->mouse_widget;
-        int x = gtk_widget_get_allocated_width(config->fixed) / 2;
-        int y = gtk_widget_get_allocated_height(config->fixed) / 2;
-        if (ev.code == X) {
-          upd->x = x + ev.value;
-          upd->y = y;
-          g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
-        } else if (ev.code == Y) {
-          upd->x = x;
-          upd->y = y + ev.value;
-          g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
+
+      } else if (ev.type == EV_KEY) {
+        for (int i = 0; i < config->size; i++) {
+          if (config->buttons[i]->key == ev.code) {
+            if (ev.value == DOWN) {
+              struct ButtonClickUpdate *upd =
+                  malloc(sizeof(struct ButtonClickUpdate));
+              if (upd == NULL) {
+                perror("Malloc failure");
+                exit(1);
+              }
+              upd->button = config->buttons[i]->button;
+              upd->set = TRUE;
+              upd->flag = GTK_STATE_FLAG_CHECKED;
+              g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                              NULL);
+              atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
+                               1);
+            } else if (ev.value == UP) {
+              if (config->buttons[i]->clicked_by <= 1) {
+                struct ButtonClickUpdate *upd =
+                    malloc(sizeof(struct ButtonClickUpdate));
+                if (upd == NULL) {
+                  perror("Malloc failure");
+                  exit(1);
+                }
+                upd->button = config->buttons[i]->button;
+                upd->set = FALSE;
+                upd->flag = GTK_STATE_FLAG_CHECKED;
+                g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
+                                NULL);
+              }
+              atomic_fetch_sub((_Atomic int *)&config->buttons[i]->clicked_by,
+                               1);
+            }
+          }
         }
       }
     }

@@ -142,10 +142,10 @@ char *get_config_path(int argc, char **argv) {
       std::cout << "config path set through opt: " << optarg << std::endl;
       if (optarg[strlen(optarg) - 1] != '/') {
         // Insert trailing slash if not gi
-        path = (char*)malloc(strlen(optarg)+2); 
-        strcpy(path,optarg);
-        strcat(path,"/");
-      }else{
+        path = (char *)malloc(strlen(optarg) + 2);
+        strcpy(path, optarg);
+        strcat(path, "/");
+      } else {
         path = strdup(optarg);
       }
       return path;
@@ -201,6 +201,7 @@ struct Config *config(int argc, char **argv) {
     exit(1);
   }
   size_t size = toml["button"].as_table()->size();
+  size_t mouse_size = toml["mousebutton"].as_table()->size();
   config = (Config *)malloc(sizeof(struct Config) +
                             size * sizeof(struct ButtonConfig *));
   if (config == NULL) {
@@ -220,7 +221,30 @@ struct Config *config(int argc, char **argv) {
   config->window.layer = map_layer(toml["window"]["layer"]);
   config->window.layer_shell = map_bool(toml["window"]["is-layer-shell"]);
   config->window.paintable = map_bool(toml["window"]["transparent"]);
+  config->input.mouse.input.buttons = (struct MouseButtonConfig **)malloc(
+      mouse_size * sizeof(struct MouseButtonConfig *));
+  config->input.mouse.input.buttons[0] =
+      (struct MouseButtonConfig *)malloc(sizeof(struct MouseButtonConfig));
+  config->input.mouse.input.size = mouse_size;
   int btn_index = 0;
+  toml["mousebutton"].as_table()->for_each([&btn_index, config](
+                                               auto &key, toml::table &value) {
+    config->input.mouse.input.buttons[btn_index] =
+        (struct MouseButtonConfig *)malloc(sizeof(struct MouseButtonConfig));
+    config->input.mouse.input.buttons[btn_index]->key =
+        value["code"].value_or(0);
+    config->input.mouse.input.buttons[btn_index]->coords.x =
+        value["x"].value_or(0);
+    config->input.mouse.input.buttons[btn_index]->coords.y =
+        value["y"].value_or(0);
+    config->input.mouse.input.buttons[btn_index]->coords.height =
+        value["height"].value_or(1);
+    config->input.mouse.input.buttons[btn_index]->coords.width =
+        value["width"].value_or(1);
+    config->input.mouse.input.buttons[btn_index]->clicked_by = 0;
+    btn_index += 1;
+  });
+  btn_index = 0;
   toml["button"].as_table()->for_each(
       [config, &btn_index, size](auto &key, toml::table &value) {
         config->input.kbd.input.buttons[btn_index] =
@@ -272,8 +296,8 @@ struct Config *config(int argc, char **argv) {
             value["height"].value_or(1);
         btn_index += 1;
       });
-      config->window.mouse_padding = toml["window"]["mouse-padding"].value_or(0);
-      config->window.layer_margin = toml["window"]["layer-margin"].value_or(0);
+  config->window.mouse_padding = toml["window"]["mouse-padding"].value_or(0);
+  config->window.layer_margin = toml["window"]["layer-margin"].value_or(0);
   config->input.quit_cond = PTHREAD_COND_INITIALIZER;
   config->input.mut = PTHREAD_MUTEX_INITIALIZER;
   return config;

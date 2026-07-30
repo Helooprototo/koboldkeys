@@ -18,6 +18,12 @@ struct ButtonConfig {
   size_t sym_count;
   char **syms;
 };
+struct MouseButtonConfig{
+  int key;
+  int clicked_by; // atomic
+  struct ButtonCoordinates coords;
+  GtkWidget* button;
+};
 struct ButtonClickUpdate {
   int set;
   GtkWidget *button;
@@ -62,8 +68,8 @@ struct DeviceConfig {
 struct MouseThreadConfig {
   char *event;
   int is_running;
-  GtkWidget *mouse_widget;
-  GtkWidget *fixed;
+  size_t size;
+  struct MouseButtonConfig **buttons;
 };
 struct MouseConfig {
   struct DeviceConfig dev;

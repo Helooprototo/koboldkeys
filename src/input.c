@@ -30,7 +30,7 @@ void *keyboard_loop(void *args) {
   fds.fd = input_device;
   fds.events = POLLIN;
   while (atomic_load((_Atomic int *)&config->is_running)) {
-    int ret = poll(&fds, 1, 0);
+    int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
       // Only accept non-repeat Key inputs
       read(input_device, &ev, sizeof(ev));
@@ -121,7 +121,7 @@ void *mouse_loop(void *args) {
   fds.fd = mouse;
   fds.events = POLLIN;
   while (atomic_load((_Atomic int *)&config->is_running)) {
-    int ret = poll(&fds, 1, 0);
+    int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
       read(mouse, &ev, sizeof(ev));
       if (ev.type == EV_REL) {

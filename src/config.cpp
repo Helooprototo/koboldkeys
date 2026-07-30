@@ -196,7 +196,7 @@ struct Config *config(int argc, char **argv) {
   }
   auto toml = toml::parse_file(path);
   free(path);
-  if (!toml["button"].is_table() || !toml["input"].is_table()) {
+  if (!toml["button"].is_table() || !toml["input"].is_table() || !toml["mousebutton"].is_table()) {
     perror("Could not find the necessary config structure");
     exit(1);
   }
@@ -223,8 +223,6 @@ struct Config *config(int argc, char **argv) {
   config->window.paintable = map_bool(toml["window"]["transparent"]);
   config->input.mouse.input.buttons = (struct MouseButtonConfig **)malloc(
       mouse_size * sizeof(struct MouseButtonConfig *));
-  config->input.mouse.input.buttons[0] =
-      (struct MouseButtonConfig *)malloc(sizeof(struct MouseButtonConfig));
   config->input.mouse.input.size = mouse_size;
   int btn_index = 0;
   toml["mousebutton"].as_table()->for_each([&btn_index, config](

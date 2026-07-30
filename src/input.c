@@ -10,7 +10,8 @@
 #define DOWN 1
 #define UP 0
 #define REPEAT 2
-
+#define X 0
+#define Y 1
 void *keyboard_loop(void *args) {
   struct KeyboardThreadConfig *config = (struct KeyboardThreadConfig *)args;
 
@@ -29,7 +30,7 @@ void *keyboard_loop(void *args) {
   fds.fd = input_device;
   fds.events = POLLIN;
   while (atomic_load((_Atomic int *)&config->is_running)) {
-    int ret = poll(&fds, 1, 0);
+    int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
       // Only accept non-repeat Key inputs
       read(input_device, &ev, sizeof(ev));

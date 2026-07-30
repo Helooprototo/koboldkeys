@@ -15,6 +15,15 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   pthread_join(conf->input_thread, NULL);
   return FALSE;
 }
+
+gboolean mouse_move_update(void *data) {
+  struct MouseMoveUpdate *update = (struct MouseMoveUpdate *)data;
+  GtkWidget *fixed = gtk_widget_get_parent(update->mouse_widget);
+  gtk_fixed_move(GTK_FIXED(fixed), update->mouse_widget, update->x, update->y);
+  g_free(update);
+  return G_SOURCE_REMOVE;
+}
+
 gboolean button_label_update(void *data) {
   struct ButtonLabelUpdate *update = (struct ButtonLabelUpdate *)data;
   gtk_button_set_label(GTK_BUTTON(update->button), update->name);
@@ -44,19 +53,28 @@ static void activate(GtkApplication *app, gpointer user_data) {
     exit(1);
   }
   memcpy(in, &conf->input, malloc_size);
-  int size = in->kbd.input.size;
+  int kbd_size = in->kbd.input.size;
+  int mouse_size = in->mouse.input.size;
   GtkWidget *window;
-
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < mouse_size; i++) {
+    in->mouse.input.buttons[i]->button = gtk_button_new();
+    gtk_widget_set_name(in->mouse.input.buttons[i]->button,
+                        in->mouse.input.buttons[i]->name);
+  }
+  for (int i = 0; i < kbd_size; i++) {
     in->kbd.input.buttons[i]->button = gtk_button_new();
     gtk_button_set_label(GTK_BUTTON(in->kbd.input.buttons[i]->button),
                          in->kbd.input.buttons[i]->label);
-    gtk_widget_set_name(in->kbd.input.buttons[i]->button, "unclicked");
+    gtk_widget_set_name(in->kbd.input.buttons[i]->button,
+                        in->kbd.input.buttons[i]->name);
   }
   GtkWidget *grid;
   GtkWidget *box;
+  GtkWidget *fixed;
+  fixed = gtk_fixed_new();
   grid = gtk_grid_new();
   box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+  gtk_box_set_spacing(GTK_BOX(box),conf->window.mouse_padding);
   window = gtk_application_window_new(app);
 #ifdef LAYER_SHELL
   if (conf->window.layer_shell) {
@@ -64,6 +82,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_layer_set_layer(GTK_WINDOW(window), conf->window.layer);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge, TRUE);
     gtk_layer_set_anchor(GTK_WINDOW(window), conf->window.edge2, TRUE);
+    gtk_layer_set_margin(GTK_WINDOW(window), conf->window.edge2,
+                         conf->window.layer_margin);
   }
 #endif
   gtk_window_set_title(GTK_WINDOW(window), "KoboldKeys");
@@ -86,18 +106,57 @@ static void activate(GtkApplication *app, gpointer user_data) {
   gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
 
   gtk_container_add(GTK_CONTAINER(window), box);
-  gtk_container_add(GTK_CONTAINER(box), grid);
-  g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), in);
-  // GtkWidget* quit = gtk_button_new();
-  // g_signal_connect(GTK_BUTTON(quit),"clicked",G_CALLBACK(destroy),app);
-  // gtk_container_add(GTK_CONTAINER(box),quit);
-  for (int i = 0; i < size; i++) {
-    gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
-                    in->kbd.input.buttons[i]->coords.x,
-                    in->kbd.input.buttons[i]->coords.y,
-                    in->kbd.input.buttons[i]->coords.width,
-                    in->kbd.input.buttons[i]->coords.height);
+
+  if (in->kbd.dev.device_count > 0) {
+    gtk_container_add(GTK_CONTAINER(box), grid);
+    for (int i = 0; i < kbd_size; i++) {
+      GtkStyleContext *cntx =
+          gtk_widget_get_style_context(in->kbd.input.buttons[i]->button);
+      gtk_style_context_add_class(cntx, "keyboardbutton");
+      gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
+                      in->kbd.input.buttons[i]->coords.x,
+                      in->kbd.input.buttons[i]->coords.y,
+                      in->kbd.input.buttons[i]->coords.width,
+                      in->kbd.input.buttons[i]->coords.height);
+    }
   }
+  if (in->mouse.dev.device_count > 0) {
+    gtk_container_add(GTK_CONTAINER(box), fixed);
+    for (int i = 0; i < mouse_size; i++) {
+      gtk_widget_set_size_request(in->mouse.input.buttons[i]->button,
+                                  in->mouse.input.buttons[i]->coords.width,
+                                  in->mouse.input.buttons[i]->coords.height);
+      GtkStyleContext *cntx =
+          gtk_widget_get_style_context(in->mouse.input.buttons[i]->button);
+      gtk_style_context_add_class(cntx, "mousebutton");
+      gtk_fixed_put(GTK_FIXED(fixed), in->mouse.input.buttons[i]->button,
+                    in->mouse.input.buttons[i]->coords.x,
+                    in->mouse.input.buttons[i]->coords.y);
+    }
+    if (in->mouse.input.show_cursor) {
+      struct MouseCursorConfig *cursor = &in->mouse.input.movement_widget;
+      struct MouseCursorConfig *area = &in->mouse.input.movement_area;
+      cursor->widget = gtk_button_new();
+      area->widget = gtk_fixed_new();
+      gtk_widget_set_name(cursor->widget, "cursor");
+      gtk_widget_set_size_request(cursor->widget, cursor->coords.width,
+                                  cursor->coords.height);
+      gtk_widget_set_size_request(area->widget,
+                                  area->coords.width,
+                                  area->coords.height);
+      GtkStyleContext *cntx = gtk_widget_get_style_context(cursor->widget);
+      gtk_style_context_add_class(cntx, "mousebutton");
+      
+      gtk_fixed_put(GTK_FIXED(fixed), in->mouse.input.movement_area.widget,
+                    in->mouse.input.movement_area.coords.x,
+                    in->mouse.input.movement_area.coords.y);
+      gtk_fixed_put(GTK_FIXED(in->mouse.input.movement_area.widget),
+                    cursor->widget, in->mouse.input.movement_area.coords.x,
+                    in->mouse.input.movement_area.coords.y);
+    }
+  }
+  g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), in);
+
   pthread_create(&in->input_thread, NULL, input_loop, in);
   free(conf->base_path);
   free(conf);

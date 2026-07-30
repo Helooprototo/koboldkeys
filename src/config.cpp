@@ -112,6 +112,15 @@ int map_edge(toml::node_view<toml::node> edge, int def) {
     return def;
   }
 }
+
+struct ButtonCoordinates map_coords(toml::node_view<toml::node> data) {
+  struct ButtonCoordinates x;
+  x.height = data["height"].value_or(1);
+  x.width = data["width"].value_or(1);
+  x.x = data["x"].value_or(0);
+  x.y = data["y"].value_or(0)*-1;
+  return x;
+}
 int map_layer(toml::node_view<toml::node> layer) {
   if (layer.is_string()) {
     const char *str = layer.value_or("overlay");
@@ -142,10 +151,10 @@ char *get_config_path(int argc, char **argv) {
       std::cout << "config path set through opt: " << optarg << std::endl;
       if (optarg[strlen(optarg) - 1] != '/') {
         // Insert trailing slash if not gi
-        path = (char*)malloc(strlen(optarg)+2); 
-        strcpy(path,optarg);
-        strcat(path,"/");
-      }else{
+        path = (char *)malloc(strlen(optarg) + 2);
+        strcpy(path, optarg);
+        strcat(path, "/");
+      } else {
         path = strdup(optarg);
       }
       return path;
@@ -196,11 +205,13 @@ struct Config *config(int argc, char **argv) {
   }
   auto toml = toml::parse_file(path);
   free(path);
-  if (!toml["button"].is_table() || !toml["input"].is_table()) {
+  if (!toml["button"].is_table() || !toml["input"].is_table() ||
+      !toml["mousebutton"].is_table()) {
     perror("Could not find the necessary config structure");
     exit(1);
   }
   size_t size = toml["button"].as_table()->size();
+  size_t mouse_size = toml["mousebutton"].as_table()->size();
   config = (Config *)malloc(sizeof(struct Config) +
                             size * sizeof(struct ButtonConfig *));
   if (config == NULL) {
@@ -219,58 +230,70 @@ struct Config *config(int argc, char **argv) {
   config->window.layer = map_layer(toml["window"]["layer"]);
   config->window.layer_shell = map_bool(toml["window"]["is-layer-shell"]);
   config->window.paintable = map_bool(toml["window"]["transparent"]);
+  config->input.mouse.input.buttons = (struct MouseButtonConfig **)malloc(
+      mouse_size * sizeof(struct MouseButtonConfig *));
+  config->input.mouse.input.size = mouse_size;
+  config->input.mouse.input.show_cursor =
+      map_bool(toml["window"]["show-cursor"]);
+  config->input.mouse.input.movement_area.coords =
+      map_coords(toml["mouse"]["area"]);
+  config->input.mouse.input.movement_widget.coords =
+      map_coords(toml["mouse"]["cursor"]);
   int btn_index = 0;
-  toml["button"].as_table()->for_each(
-      [config, &btn_index, size](auto &key, toml::table &value) {
-        config->input.kbd.input.buttons[btn_index] =
-            (struct ButtonConfig *)malloc(sizeof(struct ButtonConfig));
-        if (value["sym"].is_array()) {
-          size_t sym_count = value["sym"].as_array()->size();
-          config->input.kbd.input.buttons[btn_index]->sym_count = sym_count;
-          config->input.kbd.input.buttons[btn_index]->syms =
-              (char **)malloc(sym_count * sizeof(char *));
-          if (config->input.kbd.input.buttons[btn_index]->syms == NULL) {
-            perror("Malloc failure");
-            exit(1);
-          }
-          size_t sym_i = 0;
-          for (auto &&sym : *value["sym"].as_array()) {
-            config->input.kbd.input.buttons[btn_index]->syms[sym_i] =
-                strdup(sym.value_or(""));
-            sym_i += 1;
-          };
-        } else if (value["sym"].is_string()) {
-          config->input.kbd.input.buttons[btn_index]->sym_count = 1;
-          config->input.kbd.input.buttons[btn_index]->syms =
-              (char **)malloc(1 * sizeof(char *));
-          if (config->input.kbd.input.buttons[btn_index]->syms == NULL) {
-            perror("Malloc failure");
-            exit(1);
-          }
-          config->input.kbd.input.buttons[btn_index]->syms[0] =
-              strdup(value["sym"].value_or(""));
-        } else {
-          std::cerr << "Button " << key.str() << " missing a symbolic! "
-                    << std::endl;
-          config->input.kbd.input.buttons[btn_index]->sym_count = 0;
-        }
+  toml["mousebutton"].as_table()->for_each([&btn_index, config](
+                                               auto &key, toml::table &value) {
+    config->input.mouse.input.buttons[btn_index] =
+        (struct MouseButtonConfig *)malloc(sizeof(struct MouseButtonConfig));
+    struct MouseButtonConfig *button =
+        config->input.mouse.input.buttons[btn_index];
+    button->coords = map_coords(toml::node_view<toml::node>(value));
+    button->key = value["code"].value_or(0);
+    button->clicked_by = 0;
+    button->name = strdup(std::string(key).c_str());
+    btn_index += 1;
+  });
+  btn_index = 0;
+  toml["button"].as_table()->for_each([config, &btn_index,
+                                       size](auto &key, toml::table &value) {
+    config->input.kbd.input.buttons[btn_index] =
+        (struct ButtonConfig *)malloc(sizeof(struct ButtonConfig));
+    struct ButtonConfig *button = config->input.kbd.input.buttons[btn_index];
+    if (value["sym"].is_array()) {
+      size_t sym_count = value["sym"].as_array()->size();
+      button->sym_count = sym_count;
+      button->syms = (char **)malloc(sym_count * sizeof(char *));
+      if (button->syms == NULL) {
+        perror("Malloc failure");
+        exit(1);
+      }
+      size_t sym_i = 0;
+      for (auto &&sym : *value["sym"].as_array()) {
+        button->syms[sym_i] = strdup(sym.value_or(""));
+        sym_i += 1;
+      };
+    } else if (value["sym"].is_string()) {
+      button->sym_count = 1;
+      button->syms = (char **)malloc(1 * sizeof(char *));
+      if (button->syms == NULL) {
+        perror("Malloc failure");
+        exit(1);
+      }
+      button->syms[0] = strdup(value["sym"].value_or(""));
+    } else {
+      std::cerr << "Button " << key.str() << " missing a symbolic! "
+                << std::endl;
+      button->sym_count = 0;
+    }
+    button->name = strdup(std::string(key).c_str());
 
-        config->input.kbd.input.buttons[btn_index]->label =
-            strdup(value["label"].value_or(value["sym"].value_or("")));
-        config->input.kbd.input.buttons[btn_index]->case_label =
-            strdup(value["case-label"].value_or(
-                config->input.kbd.input.buttons[btn_index]->label));
-        config->input.kbd.input.buttons[btn_index]->clicked_by = 0;
-        config->input.kbd.input.buttons[btn_index]->coords.x =
-            value["x"].value_or(0);
-        config->input.kbd.input.buttons[btn_index]->coords.y =
-            value["y"].value_or(0) * -1;
-        config->input.kbd.input.buttons[btn_index]->coords.width =
-            value["width"].value_or(1);
-        config->input.kbd.input.buttons[btn_index]->coords.height =
-            value["height"].value_or(1);
-        btn_index += 1;
-      });
+    button->label = strdup(value["label"].value_or(value["sym"].value_or("")));
+    button->case_label = strdup(value["case-label"].value_or(button->label));
+    button->clicked_by = 0;
+    button->coords = map_coords(toml::node_view<toml::node>(value));
+    btn_index += 1;
+  });
+  config->window.mouse_padding = toml["window"]["mouse-padding"].value_or(0);
+  config->window.layer_margin = toml["window"]["layer-margin"].value_or(0);
   config->input.quit_cond = PTHREAD_COND_INITIALIZER;
   config->input.mut = PTHREAD_MUTEX_INITIALIZER;
   return config;

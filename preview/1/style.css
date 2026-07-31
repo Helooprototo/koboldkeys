@@ -1,0 +1,33 @@
+button{
+    color: black;
+    background:white;
+    font: 24px "impact"
+}
+.keyboardbutton{
+    background-image: url("key.svg");
+    background-position: center;
+    background-size: 100% 100%;
+}
+.keyboardbutton:checked{
+    background-image: url("key_pressed.svg");
+    background-position: center;
+    background-size: 100% 100%;
+}
+
+.mousebutton:checked{
+    background:black;
+}
+
+.mousebutton#middle:checked{
+    background:red;
+}
+.mousebutton#cursor{
+      border:none;
+      border-width: 0;
+      box-shadow: none;
+          background-size: cover;
+    background-position: center;
+    background-color: transparent;
+    outline:none;
+    background-image: url("cursor.svg");
+}

@@ -1,0 +1,107 @@
+[window]
+# OPTIONAL: List of two anchors, Both set to 'bottom' if unset. Entries can be a string or the numerical value of an edge
+## If both anchors are the same, or the complete opposite (LEFT and LEFT or LEFT and RIGHT), itll be centered on one of the anchors
+## First entry defaults to "bottom" if unset or invalid, second entry defaults to "left" if unset or invalid
+anchors=["bottom","right"]
+show-cursor=true
+# OPTIONAL: Layer to use, can be either background, bottom, top, or overlay. Set to overlay if unset. Can be a string or the numerical value of the layer
+layer="overlay"
+# OPTIONAL: Wether or not the window should be a layer shell or a regular window, set to true if unset. Can be a bool-ish value
+is-layer-shell=true
+# OPTIONAL: wether or not the window background should be transparent, set to true if unset. Can be a bool-ish value
+transparent=true
+
+mouse-padding=10
+
+layer-margin=0
+
+
+
+[mouse.area]
+width=70
+height=70
+x=10
+y=0
+[mouse.cursor]
+width=50
+height=50
+x=-15
+y=-30
+
+[input]
+# Path to the input device, can be found through evtest. Or by searching /dev/input/by-id/
+keyboard=["/dev/input/event4","/dev/input/event21"]
+mouse=["/dev/input/event2","/dev/input/event21"]
+[xkb]
+# OPTIONAL: Keyboard layout to use
+layout="de"
+# OPTIONAL: Keyboard variant to use
+variant=""
+
+[button.space]
+# Symbolic to map to the button, can be found through the debug output. Can only be a string
+sym="SPACE"
+# OPTIONAL: normal button label, uses the symbolic value if unset. Can only be a string
+label="space" 
+# OPTIONAL: text to be displayed if caps or shift is held, uses the default label if unset. Can only be a string
+case-label="SPACE"
+# OPTIONAL: Coordinates on the grid, set to 0 if unset. Can only be an integer
+y=-1
+x=2
+# OPTIONAL: The width/height it should take up on the grid, set to 1 if unset. Can only be an integer
+width=3
+height=1 
+[button.33]
+# Symbolic can be an array to map multiple keys
+sym=["shift_l","shift_r"]
+label="SHIFT"
+x=-1
+y=-1
+[button.44]
+sym="W"
+y=1
+x=2
+width=3
+[button.25]
+sym="A"
+x=2
+[button.65]
+sym="S"
+x=3
+[button.37]
+sym="D"
+x=4
+[button.1q]
+sym="Q"
+x=-1
+width=3
+
+[mousebutton.a]
+code=272
+width=20
+height=100
+x=5
+[mousebutton.d]
+code=273
+width=20
+height=100
+x=25
+
+[mousebutton.middle]
+code=274
+width=20
+height=30
+x=15
+
+[mousebutton.side]
+code=276
+width=5
+height=20
+y=-20
+x=0
+[mousebutton.side2]
+code=275
+width=5
+height=20
+y=-60
+x=0

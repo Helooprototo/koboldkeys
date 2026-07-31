@@ -49,7 +49,15 @@ struct XkbConfig {
   const char *variant;
   const char *options;
 };
+struct CssWatcherThread{
+  pthread_t thread;
+  GtkCssProvider* css;
+  int is_running; //atomic
+  char* dir_path;
+  char* filename;
+};
 struct WindowConfig {
+  struct CssWatcherThread css_watcher_thread;
   int layer;
   int edge;
   int edge2;

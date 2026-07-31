@@ -1,19 +1,100 @@
 #include "input.h"
 #include "structs.h"
+#include <poll.h>
+#include <sys/inotify.h>
+#include <xkbcommon/xkbcommon.h>
 #ifdef LAYER_SHELL
 #include <gtk-layer-shell/gtk-layer-shell.h>
 #endif
 #include <gtk/gtk.h>
 #include <linux/input.h>
 #include <pthread.h>
-
+#include <stdatomic.h>
 static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
-  struct InputConfig *conf = (struct InputConfig *)user_data;
-  pthread_mutex_lock(&conf->mut);
-  pthread_cond_signal(&conf->quit_cond);
-  pthread_mutex_unlock(&conf->mut);
-  pthread_join(conf->input_thread, NULL);
+  struct Config *conf = (struct Config *)user_data;
+  struct InputConfig *in = &conf->input;
+  pthread_mutex_lock(&in->mut);
+  pthread_cond_signal(&in->quit_cond);
+  pthread_mutex_unlock(&in->mut);
+  fflush(stdout);
+  atomic_store((_Atomic int *)&conf->window.css_watcher_thread.is_running,
+               FALSE);
+  pthread_join(conf->window.css_watcher_thread.thread, NULL);
+  pthread_join(in->input_thread, NULL);
+  xkb_state_unref(in->kbd.input.state);
+  for (int i = 0; i < in->kbd.dev.device_count; i++) {
+    free(in->kbd.dev.devices[i]);
+  }
+  if (in->kbd.dev.device_count > 0) {
+    free(in->kbd.dev.devices);
+  }
+  for (int i = 0; i < in->mouse.dev.device_count; i++) {
+    free(in->mouse.dev.devices[i]);
+  }
+  if (in->mouse.dev.device_count > 0) {
+    free(in->mouse.dev.devices);
+  }
+  free(conf->base_path);
+  free(conf);
   return FALSE;
+}
+
+void *css_watcher(void *data) {
+  struct CssWatcherThread *conf = (struct CssWatcherThread *)data;
+  int event_size = sizeof(struct inotify_event);
+  int buffer_len = 1024 * (event_size + 16);
+  char buf[buffer_len];
+  int wd;
+
+  char *path = malloc(strlen(conf->dir_path) + strlen("style.css") + 1);
+  if (path == NULL) {
+    perror("Malloc failure");
+  }
+  strcpy(path, conf->dir_path);
+  strcat(path, "style.css");
+  gtk_css_provider_load_from_file(conf->css, g_file_new_for_path(path), NULL);
+
+  int inotify_fd = inotify_init();
+  if (inotify_fd < 0) {
+    perror("Inotify init failed");
+  }
+
+  wd = inotify_add_watch(inotify_fd, conf->dir_path,
+                         IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE | IN_DELETE);
+  if (wd < 0) {
+    perror("Inotify watch failed");
+  }
+
+  while (atomic_load((_Atomic int *)&conf->is_running)) {
+    struct pollfd fds;
+    fds.fd = inotify_fd;
+    fds.events = POLLIN;
+    int ret = poll(&fds, 1, 10);
+    if (ret > 0 && (fds.revents & POLLIN)) {
+      ssize_t bytes_read = read(inotify_fd, buf, buffer_len);
+      if (bytes_read <= 0) {
+        perror("watcher read failure");
+        continue;
+      }
+
+      for (char *ptr = buf; ptr < buf + bytes_read;) {
+        struct inotify_event *event = (struct inotify_event *)ptr;
+
+        if (event->len > 0 && strcmp(event->name, conf->filename) == 0) {
+          if (event->mask & (IN_CLOSE_WRITE | IN_MOVED_TO)) {
+            printf("style.css changed, reloading\n");
+            gtk_css_provider_load_from_file(conf->css,
+                                            g_file_new_for_path(path), NULL);
+          }
+        }
+
+        ptr += event_size + event->len;
+      }
+    }
+  }
+  free(path);
+  free(conf->dir_path);
+  return 0;
 }
 
 gboolean mouse_move_update(void *data) {
@@ -44,15 +125,7 @@ gboolean button_click_update(void *data) {
 
 static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
-  size_t malloc_size =
-      sizeof(struct InputConfig) +
-      conf->input.kbd.input.size * sizeof(struct ButtonConfig *);
-  struct InputConfig *in = malloc(malloc_size);
-  if (in == NULL) {
-    perror("Malloc failure");
-    exit(1);
-  }
-  memcpy(in, &conf->input, malloc_size);
+  struct InputConfig *in = &conf->input;
   int kbd_size = in->kbd.input.size;
   int mouse_size = in->mouse.input.size;
   GtkWidget *window;
@@ -68,8 +141,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_set_size_request(in->kbd.input.buttons[i]->button,
                                 in->kbd.input.buttons[i]->coords.width,
                                 in->kbd.input.buttons[i]->coords.height);
-        gtk_widget_set_name(in->kbd.input.buttons[i]->button,
-                            in->kbd.input.buttons[i]->name);
+    gtk_widget_set_name(in->kbd.input.buttons[i]->button,
+                        in->kbd.input.buttons[i]->name);
   }
   GtkWidget *grid;
   GtkWidget *box;
@@ -92,19 +165,16 @@ static void activate(GtkApplication *app, gpointer user_data) {
   gtk_window_set_title(GTK_WINDOW(window), "KoboldKeys");
   // gtk_window_set_default_size(GTK_WINDOW(window), 200, 200);
 
-  GtkCssProvider *css = gtk_css_provider_new();
+  struct CssWatcherThread *css_watcher_data = &conf->window.css_watcher_thread;
+  css_watcher_data->filename = "style.css";
 
-  char *path = malloc(strlen(conf->base_path) + strlen("style.css") + 1);
-  if (path == NULL) {
-    perror("Malloc failure");
-  }
-  strcpy(path, conf->base_path);
-  strcat(path, "style.css");
-  gtk_css_provider_load_from_file(css, g_file_new_for_path(path), NULL);
-  free(path);
-  gtk_style_context_add_provider_for_screen(gtk_widget_get_screen(window),
-                                            GTK_STYLE_PROVIDER(css),
-                                            GTK_STYLE_PROVIDER_PRIORITY_USER);
+  css_watcher_data->css = gtk_css_provider_new();
+  css_watcher_data->dir_path = strdup(conf->base_path);
+  pthread_create(&css_watcher_data->thread, NULL, css_watcher,
+                 css_watcher_data);
+  gtk_style_context_add_provider_for_screen(
+      gtk_widget_get_screen(window), GTK_STYLE_PROVIDER(css_watcher_data->css),
+      GTK_STYLE_PROVIDER_PRIORITY_USER);
   gtk_widget_set_app_paintable(window, conf->window.paintable);
   gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
 
@@ -157,11 +227,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
                     in->mouse.input.movement_area.coords.y);
     }
   }
-  g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), in);
-
   pthread_create(&in->input_thread, NULL, input_loop, in);
-  free(conf->base_path);
-  free(conf);
+  g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), conf);
   gtk_widget_show_all(window);
 }
 

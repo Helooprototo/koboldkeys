@@ -245,19 +245,6 @@ void *input_loop(void *args) {
   }
   free(kbd_threads);
   free(mouse_threads);
-  xkb_state_unref(conf->kbd.input.state);
-  for (int i = 0; i < conf->kbd.dev.device_count; i++) {
-    free(conf->kbd.dev.devices[i]);
-  }
-  if (conf->kbd.dev.device_count > 0) {
-    free(conf->kbd.dev.devices);
-  }
-  for (int i = 0; i < conf->mouse.dev.device_count; i++) {
-    free(conf->mouse.dev.devices[i]);
-  }
-  if (conf->mouse.dev.device_count > 0) {
-    free(conf->mouse.dev.devices);
-  }
-  free(conf);
+
   return (void *)0;
 }

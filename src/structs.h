@@ -56,6 +56,11 @@ struct CssWatcherThread{
   char* dir_path;
   char* filename;
 };
+struct InputLoopThread{
+  pthread_t thread;
+  pthread_cond_t quit_cond;
+  pthread_mutex_t mut;
+};
 struct WindowConfig {
   struct CssWatcherThread css_watcher_thread;
   int layer;
@@ -103,9 +108,7 @@ struct KeyboardConfig {
   struct KeyboardThreadConfig input;
 };
 struct InputConfig {
-  pthread_cond_t quit_cond;
-  pthread_mutex_t mut;
-  pthread_t input_thread;
+  struct InputLoopThread input_thread;
   struct MouseConfig mouse;
   struct KeyboardConfig kbd;
 };

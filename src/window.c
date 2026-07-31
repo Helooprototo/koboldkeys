@@ -13,14 +13,14 @@
 static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
   struct InputConfig *in = &conf->input;
-  pthread_mutex_lock(&in->mut);
-  pthread_cond_signal(&in->quit_cond);
-  pthread_mutex_unlock(&in->mut);
+  pthread_mutex_lock(&in->input_thread.mut);
+  pthread_cond_signal(&in->input_thread.quit_cond);
+  pthread_mutex_unlock(&in->input_thread.mut);
   fflush(stdout);
   atomic_store((_Atomic int *)&conf->window.css_watcher_thread.is_running,
                FALSE);
   pthread_join(conf->window.css_watcher_thread.thread, NULL);
-  pthread_join(in->input_thread, NULL);
+  pthread_join(in->input_thread.thread, NULL);
   xkb_state_unref(in->kbd.input.state);
   for (int i = 0; i < in->kbd.dev.device_count; i++) {
     free(in->kbd.dev.devices[i]);
@@ -227,7 +227,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
                     in->mouse.input.movement_area.coords.y);
     }
   }
-  pthread_create(&in->input_thread, NULL, input_loop, in);
+  pthread_create(&in->input_thread.thread, NULL, input_loop, in);
   g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), conf);
   gtk_widget_show_all(window);
 }

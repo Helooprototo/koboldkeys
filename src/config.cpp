@@ -295,7 +295,7 @@ struct Config *config(int argc, char **argv) {
   });
   config->window.mouse_padding = toml["window"]["mouse-padding"].value_or(0);
   config->window.layer_margin = toml["window"]["layer-margin"].value_or(0);
-  config->input.quit_cond = PTHREAD_COND_INITIALIZER;
-  config->input.mut = PTHREAD_MUTEX_INITIALIZER;
+  config->input.input_thread.quit_cond = PTHREAD_COND_INITIALIZER;
+  config->input.input_thread.mut = PTHREAD_MUTEX_INITIALIZER;
   return config;
 }

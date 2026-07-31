@@ -232,9 +232,9 @@ void *input_loop(void *args) {
       pthread_create(&mouse_threads[i].thread, NULL, mouse_loop, mouse_conf);
     }
   }
-  pthread_mutex_lock(&conf->mut);
-  pthread_cond_wait(&conf->quit_cond, &conf->mut);
-  pthread_mutex_unlock(&conf->mut);
+  pthread_mutex_lock(&conf->input_thread.mut);
+  pthread_cond_wait(&conf->input_thread.quit_cond, &conf->input_thread.mut);
+  pthread_mutex_unlock(&conf->input_thread.mut);
   for (int i = 0; i < conf->kbd.dev.device_count; i++) {
     atomic_store((_Atomic int *)&kbd_threads[i].thread_conf->is_running, 0);
     pthread_join(kbd_threads[i].thread, NULL);

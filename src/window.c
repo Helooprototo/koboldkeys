@@ -70,7 +70,11 @@ gboolean button_click_update(void *data) {
   g_free(update);
   return G_SOURCE_REMOVE;
 }
-
+void configure_button(struct ButtonConfig *button) {
+  gtk_widget_set_size_request(button->button, button->coords->width,
+                              button->coords->height);
+  gtk_widget_set_name(button->button, button->name);
+}
 static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
   struct InputConfig *in = &conf->input;
@@ -78,19 +82,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
   int mouse_size = in->mouse.input.size;
   GtkWidget *window;
   for (int i = 0; i < mouse_size; i++) {
-    in->mouse.input.buttons[i]->button = gtk_button_new();
-    gtk_widget_set_name(in->mouse.input.buttons[i]->button,
-                        in->mouse.input.buttons[i]->name);
+    in->mouse.input.buttons[i]->conf.button = gtk_button_new();
   }
   for (int i = 0; i < kbd_size; i++) {
-    in->kbd.input.buttons[i]->button = gtk_button_new();
-    gtk_button_set_label(GTK_BUTTON(in->kbd.input.buttons[i]->button),
-                         in->kbd.input.buttons[i]->label);
-    gtk_widget_set_size_request(in->kbd.input.buttons[i]->button,
-                                in->kbd.input.buttons[i]->coords.width,
-                                in->kbd.input.buttons[i]->coords.height);
-    gtk_widget_set_name(in->kbd.input.buttons[i]->button,
-                        in->kbd.input.buttons[i]->name);
+    in->kbd.input.buttons[i]->conf.button = gtk_button_new();
   }
   GtkWidget *grid;
   GtkWidget *box;
@@ -120,52 +115,42 @@ static void activate(GtkApplication *app, gpointer user_data) {
   if (in->kbd.dev.device_count > 0) {
     gtk_container_add(GTK_CONTAINER(box), grid);
     for (int i = 0; i < kbd_size; i++) {
-      GtkStyleContext *cntx =
-          gtk_widget_get_style_context(in->kbd.input.buttons[i]->button);
+      struct ButtonConfig *button = &in->kbd.input.buttons[i]->conf;
+      GtkStyleContext *cntx = gtk_widget_get_style_context(button->button);
+      configure_button(button);
       gtk_style_context_add_class(cntx, "keyboardbutton");
-      gtk_grid_attach(GTK_GRID(grid), in->kbd.input.buttons[i]->button,
-                      in->kbd.input.buttons[i]->coords.x,
-                      in->kbd.input.buttons[i]->coords.y,
-                      in->kbd.input.buttons[i]->coords.width,
-                      in->kbd.input.buttons[i]->coords.height);
+      gtk_button_set_label(GTK_BUTTON(button->button),
+                           in->kbd.input.buttons[i]->label);
+      gtk_grid_attach(GTK_GRID(grid), button->button, button->coords->x,
+                      button->coords->y, button->coords->width,
+                      button->coords->height);
     }
   }
   if (in->mouse.dev.device_count > 0) {
     gtk_container_add(GTK_CONTAINER(box), fixed);
     for (int i = 0; i < mouse_size; i++) {
-      gtk_widget_set_size_request(in->mouse.input.buttons[i]->button,
-                                  in->mouse.input.buttons[i]->coords.width,
-                                  in->mouse.input.buttons[i]->coords.height);
-      GtkStyleContext *cntx =
-          gtk_widget_get_style_context(in->mouse.input.buttons[i]->button);
+      struct ButtonConfig *button = &in->mouse.input.buttons[i]->conf;
+      configure_button(button);
+      GtkStyleContext *cntx = gtk_widget_get_style_context(button->button);
       gtk_style_context_add_class(cntx, "mousebutton");
-      gtk_fixed_put(GTK_FIXED(fixed), in->mouse.input.buttons[i]->button,
-                    in->mouse.input.buttons[i]->coords.x,
-                    in->mouse.input.buttons[i]->coords.y);
+      gtk_fixed_put(GTK_FIXED(fixed), button->button, button->coords->x,
+                    button->coords->y);
     }
     if (in->mouse.input.show_cursor) {
       struct MouseCursorConfig *cursor = &in->mouse.input.movement_widget;
-      struct MouseCursorConfig *area = &in->mouse.input.movement_area;
       cursor->widget = gtk_button_new();
-      area->widget = gtk_fixed_new();
       gtk_widget_set_name(cursor->widget, "cursor");
-      gtk_widget_set_size_request(cursor->widget, cursor->coords.width,
-                                  cursor->coords.height);
-      gtk_widget_set_size_request(area->widget, area->coords.width,
-                                  area->coords.height);
+      gtk_widget_set_size_request(cursor->widget, cursor->coords->width,
+                                  cursor->coords->height);
       GtkStyleContext *cntx = gtk_widget_get_style_context(cursor->widget);
       gtk_style_context_add_class(cntx, "mousebutton");
-
-      gtk_fixed_put(GTK_FIXED(fixed), in->mouse.input.movement_area.widget,
-                    in->mouse.input.movement_area.coords.x,
-                    in->mouse.input.movement_area.coords.y);
-      gtk_fixed_put(GTK_FIXED(in->mouse.input.movement_area.widget),
-                    cursor->widget, in->mouse.input.movement_area.coords.x,
-                    in->mouse.input.movement_area.coords.y);
+      gtk_fixed_put(GTK_FIXED(fixed), cursor->widget,
+                    in->mouse.input.movement_widget.coords->x,
+                    in->mouse.input.movement_widget.coords->y);
     }
   }
   char *path =
-      malloc(strlen(conf->base_path) + strlen("style.css") * sizeof(char)+1);
+      malloc(strlen(conf->base_path) + strlen("style.css") * sizeof(char) + 1);
   strcpy(path, conf->base_path);
   strcat(path, "style.css");
   GtkCssProvider *css_provider = gtk_css_provider_new();
@@ -175,7 +160,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
   gtk_style_context_add_provider_for_screen(gtk_widget_get_screen(window),
                                             GTK_STYLE_PROVIDER(css_provider),
                                             GTK_STYLE_PROVIDER_PRIORITY_USER);
-  g_signal_connect(conf->window.watcher, "changed", G_CALLBACK(css_watcher), css_provider);
+  g_signal_connect(conf->window.watcher, "changed", G_CALLBACK(css_watcher),
+                   css_provider);
   g_object_unref(css);
   free(path);
   pthread_create(&in->input_thread.thread, NULL, input_loop, in);

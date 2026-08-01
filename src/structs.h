@@ -3,32 +3,35 @@
 
 #include <gtk/gtk.h>
 #include <linux/input.h>
+
+
 struct ButtonCoordinates {
   int x;
   int y;
   int width;
   int height;
+  int z_index;
 };
 struct ButtonConfig {
+  char *name;
+  GtkWidget *button;
+  struct ButtonCoordinates *coords;
+  int clicked_by; // atomic
+};
+struct KeyboardButtonConfig {
   char *label;
   char *case_label;
-  char *name;
-  int clicked_by; // atomic
-  struct ButtonCoordinates coords;
-  GtkWidget *button;
+
+  struct ButtonConfig conf;
   size_t sym_count;
   char **syms;
 };
 struct MouseButtonConfig {
   int key;
-  int clicked_by; // atomic
-  int z_index;
-  struct ButtonCoordinates coords;
-  char *name;
-  GtkWidget *button;
+  struct ButtonConfig conf;
 };
 struct MouseCursorConfig {
-  struct ButtonCoordinates coords;
+  struct ButtonCoordinates *coords;
   GtkWidget *widget;
 };
 struct ButtonClickUpdate {
@@ -51,13 +54,13 @@ struct XkbConfig {
   const char *options;
 };
 
-struct InputLoopThread{
+struct InputLoopThread {
   pthread_t thread;
   pthread_cond_t quit_cond;
   pthread_mutex_t mut;
 };
 struct WindowConfig {
-  GFileMonitor* watcher;
+  GFileMonitor *watcher;
   int layer;
   int edge;
   int edge2;
@@ -83,7 +86,6 @@ struct MouseThreadConfig {
   int is_running; // Atomic
   int show_cursor;
   size_t size;
-  struct MouseCursorConfig movement_area;
   struct MouseCursorConfig movement_widget;
   struct MouseButtonConfig **buttons;
 };
@@ -96,7 +98,7 @@ struct KeyboardThreadConfig {
   char *event;
   int is_running; // atomic
   struct xkb_state *state;
-  struct ButtonConfig *buttons[];
+  struct KeyboardButtonConfig *buttons[];
 };
 struct KeyboardConfig {
   struct DeviceConfig dev;

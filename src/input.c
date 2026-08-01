@@ -95,7 +95,7 @@ void *keyboard_loop(void *args) {
                               NULL);
               press_button(config->buttons[i]);
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
-              if (config->buttons[i]->clicked_by <= 1) {
+              if (atomic_load((_Atomic int*)&config->buttons[i]->clicked_by) <= 1) {
                 struct ButtonClickUpdate *upd =
                     malloc(sizeof(struct ButtonClickUpdate));
                 if (upd == NULL) {

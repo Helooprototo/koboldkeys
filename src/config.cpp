@@ -117,7 +117,7 @@ void map_coords(toml::node_view<toml::node> data, struct ButtonCoordinates *x) {
   x->width = data["width"].value_or(1);
   x->x = data["x"].value_or(0);
   x->y = data["y"].value_or(0) * -1;
-  x->z_index = data["z-index"].value_or(0);
+  x->z = data["z"].value_or(0);
 }
 int map_layer(toml::node_view<toml::node> layer) {
   if (layer.is_string()) {
@@ -147,8 +147,8 @@ void sort_mouse_buttons_z_index(struct MouseButtonConfig **buttons,
   while (is_unsorted) {
     is_unsorted = 0;
     for (int i = 0; i < button_count - 1; i++) {
-      if (buttons[i]->conf.coords->z_index >
-          buttons[i + 1]->conf.coords->z_index) {
+      if (buttons[i]->conf.coords->z >
+          buttons[i + 1]->conf.coords->z) {
         is_unsorted = 1;
         tmp = (int *)buttons[i + 1];
         buttons[i + 1] = buttons[i];

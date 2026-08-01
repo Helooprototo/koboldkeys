@@ -10,7 +10,7 @@ struct ButtonCoordinates {
   int y;
   int width;
   int height;
-  int z_index;
+  int z;
 };
 struct ButtonConfig {
   char *name;

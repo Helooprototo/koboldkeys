@@ -118,7 +118,7 @@ struct ButtonCoordinates map_coords(toml::node_view<toml::node> data) {
   x.height = data["height"].value_or(1);
   x.width = data["width"].value_or(1);
   x.x = data["x"].value_or(0);
-  x.y = data["y"].value_or(0)*-1;
+  x.y = data["y"].value_or(0) * -1;
   return x;
 }
 int map_layer(toml::node_view<toml::node> layer) {
@@ -139,6 +139,23 @@ int map_layer(toml::node_view<toml::node> layer) {
     return layer.value_or(GTK_LAYER_SHELL_LAYER_OVERLAY);
   } else {
     return GTK_LAYER_SHELL_LAYER_OVERLAY;
+  }
+}
+
+void sort_mouse_buttons_z_index(struct MouseButtonConfig **buttons,
+                                size_t button_count) {
+  int *tmp;
+  int is_unsorted = 1;
+  while (is_unsorted) {
+    is_unsorted = 0;
+    for (int i = 0; i < button_count - 1; i++) {
+      if (buttons[i]->z_index > buttons[i + 1]->z_index) {
+        is_unsorted = 1;
+        tmp = (int*)buttons[i + 1];
+        buttons[i + 1] = buttons[i];
+        buttons[i] = (struct MouseButtonConfig*)tmp;
+      };
+    }
   }
 }
 extern "C" char *get_config_path(int argc, char **argv);
@@ -250,9 +267,13 @@ struct Config *config(int argc, char **argv) {
     button->coords = map_coords(toml::node_view<toml::node>(value));
     button->key = value["code"].value_or(0);
     button->clicked_by = 0;
+    button->z_index = value["z-index"].value_or(0);
     button->name = strdup(std::string(key).c_str());
     btn_index += 1;
   });
+  if(config->input.mouse.input.size > 0){
+    sort_mouse_buttons_z_index(config->input.mouse.input.buttons, config->input.mouse.input.size);
+  }
   btn_index = 0;
   toml["button"].as_table()->for_each([config, &btn_index,
                                        size](auto &key, toml::table &value) {

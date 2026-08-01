@@ -1,11 +1,13 @@
 button{
     color: black;
-    background:white;
+    background:transparent;
     font: 24px "impact"
 }
 .keyboardbutton{
     background-image: url("key.svg");
     background-position: center;
+    box-shadow:none;
+    border:none;
     background-size: 100% 100%;
 }
 .keyboardbutton:checked{
@@ -13,13 +15,15 @@ button{
     background-position: center;
     background-size: 100% 100%;
 }
-
+.mousebutton{
+    background:white;
+}
 .mousebutton:checked{
     background:black;
 }
 
 .mousebutton#middle:checked{
-    background:red;
+    background:purple;
 }
 .mousebutton#cursor{
       border:none;

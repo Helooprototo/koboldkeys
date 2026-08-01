@@ -1,7 +1,6 @@
 #include "input.h"
 #include "structs.h"
 #include <poll.h>
-#include <sys/inotify.h>
 #include <xkbcommon/xkbcommon.h>
 #ifdef LAYER_SHELL
 #include <gtk-layer-shell/gtk-layer-shell.h>

@@ -20,5 +20,5 @@ target_link_libraries(koboldkeys PUBLIC ${XKB_LIBRARIES})
 
 install(TARGETS koboldkeys DESTINATION bin)
 
-target_compile_options(koboldkeys PUBLIC -fsanitize=address -fno-omit-frame-pointer -g)
-target_link_options(koboldkeys PUBLIC -fsanitize=address)
+#target_compile_options(koboldkeys PUBLIC -fsanitize=address -fno-omit-frame-pointer -g)
+#target_link_options(koboldkeys PUBLIC -fsanitize=address)

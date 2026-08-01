@@ -12,6 +12,15 @@
 #define REPEAT 2
 #define X 0
 #define Y 1
+
+void press_button(struct ButtonConfig* button){
+              atomic_fetch_add((_Atomic int *)&button->clicked_by,
+                               1);
+}
+void unpress_button(struct ButtonConfig* button){
+                atomic_fetch_sub((_Atomic int *)&button->clicked_by,
+                               1);
+}
 void *keyboard_loop(void *args) {
   struct KeyboardThreadConfig *config = (struct KeyboardThreadConfig *)args;
 
@@ -84,8 +93,7 @@ void *keyboard_loop(void *args) {
               upd->flag = GTK_STATE_FLAG_CHECKED;
               g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                               NULL);
-              atomic_fetch_add((_Atomic int *)&config->buttons[i]->clicked_by,
-                               1);
+              press_button(config->buttons[i]);
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
               if (config->buttons[i]->clicked_by <= 1) {
                 struct ButtonClickUpdate *upd =
@@ -100,8 +108,7 @@ void *keyboard_loop(void *args) {
                 g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                                 NULL);
               }
-              atomic_fetch_sub((_Atomic int *)&config->buttons[i]->clicked_by,
-                               1);
+              unpress_button(config->buttons[i]);
             }
           }
         }

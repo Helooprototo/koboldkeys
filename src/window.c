@@ -17,9 +17,6 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   pthread_cond_signal(&in->input_thread.quit_cond);
   pthread_mutex_unlock(&in->input_thread.mut);
   fflush(stdout);
-  atomic_store((_Atomic int *)&conf->window.css_watcher_thread.is_running,
-               FALSE);
-  pthread_join(conf->window.css_watcher_thread.thread, NULL);
   pthread_join(in->input_thread.thread, NULL);
   xkb_state_unref(in->kbd.input.state);
   for (int i = 0; i < in->kbd.dev.device_count; i++) {
@@ -34,67 +31,19 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   if (in->mouse.dev.device_count > 0) {
     free(in->mouse.dev.devices);
   }
+  g_object_unref(conf->window.watcher);
   free(conf->base_path);
   free(conf);
   return FALSE;
 }
 
-void *css_watcher(void *data) {
-  struct CssWatcherThread *conf = (struct CssWatcherThread *)data;
-  int event_size = sizeof(struct inotify_event);
-  int buffer_len = 1024 * (event_size + 16);
-  char buf[buffer_len];
-  int wd;
-
-  char *path = malloc(strlen(conf->dir_path) + strlen("style.css") + 1);
-  if (path == NULL) {
-    perror("Malloc failure");
+static void css_watcher(GFileMonitor *monitor, GFile *file, GFile *other_file,
+                        GFileMonitorEvent event_type, gpointer user_data) {
+  GtkCssProvider *css_provider = (GtkCssProvider *)user_data;
+  gchar *path = g_file_get_path(file);
+  if (event_type == G_FILE_MONITOR_EVENT_CHANGED) {
+    gtk_css_provider_load_from_path(css_provider, path, NULL);
   }
-  strcpy(path, conf->dir_path);
-  strcat(path, "style.css");
-  gtk_css_provider_load_from_file(conf->css, g_file_new_for_path(path), NULL);
-
-  int inotify_fd = inotify_init();
-  if (inotify_fd < 0) {
-    perror("Inotify init failed");
-  }
-
-  wd = inotify_add_watch(inotify_fd, conf->dir_path,
-                         IN_CLOSE_WRITE | IN_MOVED_TO | IN_CREATE | IN_DELETE);
-  if (wd < 0) {
-    perror("Inotify watch failed");
-  }
-
-  while (atomic_load((_Atomic int *)&conf->is_running)) {
-    struct pollfd fds;
-    fds.fd = inotify_fd;
-    fds.events = POLLIN;
-    int ret = poll(&fds, 1, 10);
-    if (ret > 0 && (fds.revents & POLLIN)) {
-      ssize_t bytes_read = read(inotify_fd, buf, buffer_len);
-      if (bytes_read <= 0) {
-        perror("watcher read failure");
-        continue;
-      }
-
-      for (char *ptr = buf; ptr < buf + bytes_read;) {
-        struct inotify_event *event = (struct inotify_event *)ptr;
-
-        if (event->len > 0 && strcmp(event->name, conf->filename) == 0) {
-          if (event->mask & (IN_CLOSE_WRITE | IN_MOVED_TO)) {
-            printf("style.css changed, reloading\n");
-            gtk_css_provider_load_from_file(conf->css,
-                                            g_file_new_for_path(path), NULL);
-          }
-        }
-
-        ptr += event_size + event->len;
-      }
-    }
-  }
-  free(path);
-  free(conf->dir_path);
-  return 0;
 }
 
 gboolean mouse_move_update(void *data) {
@@ -164,17 +113,6 @@ static void activate(GtkApplication *app, gpointer user_data) {
 #endif
   gtk_window_set_title(GTK_WINDOW(window), "KoboldKeys");
   // gtk_window_set_default_size(GTK_WINDOW(window), 200, 200);
-
-  struct CssWatcherThread *css_watcher_data = &conf->window.css_watcher_thread;
-  css_watcher_data->filename = "style.css";
-
-  css_watcher_data->css = gtk_css_provider_new();
-  css_watcher_data->dir_path = strdup(conf->base_path);
-  pthread_create(&css_watcher_data->thread, NULL, css_watcher,
-                 css_watcher_data);
-  gtk_style_context_add_provider_for_screen(
-      gtk_widget_get_screen(window), GTK_STYLE_PROVIDER(css_watcher_data->css),
-      GTK_STYLE_PROVIDER_PRIORITY_USER);
   gtk_widget_set_app_paintable(window, conf->window.paintable);
   gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
 
@@ -227,6 +165,20 @@ static void activate(GtkApplication *app, gpointer user_data) {
                     in->mouse.input.movement_area.coords.y);
     }
   }
+  char *path =
+      malloc(strlen(conf->base_path) + strlen("style.css") * sizeof(char)+1);
+  strcpy(path, conf->base_path);
+  strcat(path, "style.css");
+  GtkCssProvider *css_provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_path(css_provider, path, NULL);
+  GFile *css = g_file_new_for_path(path);
+  conf->window.watcher = g_file_monitor(css, G_FILE_MONITOR_NONE, NULL, NULL);
+  gtk_style_context_add_provider_for_screen(gtk_widget_get_screen(window),
+                                            GTK_STYLE_PROVIDER(css_provider),
+                                            GTK_STYLE_PROVIDER_PRIORITY_USER);
+  g_signal_connect(conf->window.watcher, "changed", G_CALLBACK(css_watcher), css_provider);
+  g_object_unref(css);
+  free(path);
   pthread_create(&in->input_thread.thread, NULL, input_loop, in);
   g_signal_connect(G_OBJECT(window), "delete-event", G_CALLBACK(quit), conf);
   gtk_widget_show_all(window);

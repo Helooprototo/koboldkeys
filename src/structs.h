@@ -98,7 +98,7 @@ struct KeyboardThreadConfig {
   char *event;
   int is_running; // atomic
   struct xkb_state *state;
-  struct KeyboardButtonConfig *buttons[];
+  struct KeyboardButtonConfig **buttons;
 };
 struct KeyboardConfig {
   struct DeviceConfig dev;

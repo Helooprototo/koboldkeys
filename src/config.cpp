@@ -228,12 +228,12 @@ struct Config *config(int argc, char **argv) {
   }
   size_t size = toml["button"].as_table()->size();
   size_t mouse_size = toml["mousebutton"].as_table()->size();
-  config = (Config *)malloc(sizeof(struct Config) +
-                            size * sizeof(struct KeyboardButtonConfig *));
+  config = (Config *)malloc(sizeof(struct Config));
   if (config == NULL) {
     perror("Malloc failure");
     exit(1);
   }
+  config->input.kbd.input.buttons = (struct KeyboardButtonConfig**)malloc(size * sizeof(struct KeyboardButtonConfig *));
   config->base_path = strdup(xdg_config);
   free(xdg_config);
   config->input.kbd.input.size = size;

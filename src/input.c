@@ -203,9 +203,7 @@ void *input_loop(void *args) {
       conf->mouse.dev.device_count * sizeof(struct MouseInputThreadContainer));
   if (conf->kbd.dev.device_count > 0) {
     for (int i = 0; i < conf->kbd.dev.device_count; i++) {
-      size_t malloc_size =
-          sizeof(struct KeyboardThreadConfig) +
-          conf->kbd.input.size * sizeof(struct KeyboardButtonConfig *);
+      size_t malloc_size = sizeof(struct KeyboardThreadConfig);
       struct KeyboardThreadConfig *kbd_conf = malloc(malloc_size);
       kbd_threads[i].thread_conf = kbd_conf;
       memcpy(kbd_conf, &conf->kbd.input, malloc_size);
@@ -243,6 +241,7 @@ void *input_loop(void *args) {
     free(conf->kbd.input.buttons[i]->syms);
     free(conf->kbd.input.buttons[i]);
   }
+  free(conf->kbd.input.buttons);
   for (int i = 0; i < conf->mouse.dev.device_count; i++) {
     atomic_store((_Atomic int *)&mouse_threads[i].thread_conf->is_running, 0);
     pthread_join(mouse_threads[i].thread, NULL);

@@ -19,9 +19,38 @@ void press_button(struct ButtonConfig *button) {
 void unpress_button(struct ButtonConfig *button) {
   atomic_fetch_sub((_Atomic int *)&button->runtime.clicked_by, 1);
 }
-int is_button_pressed(struct ButtonConfig *button){
-  return (atomic_load((_Atomic int*)&button->runtime.clicked_by) > 1);
+int is_button_pressed(struct ButtonConfig *button) {
+  return (atomic_load((_Atomic int *)&button->runtime.clicked_by) > 1);
 }
+
+void handle_button_press(struct ButtonConfig *button, struct input_event ev) {
+  if (ev.value == DOWN) {
+    struct ButtonClickUpdate *upd = malloc(sizeof(struct ButtonClickUpdate));
+    if (upd == NULL) {
+      perror("Malloc failure");
+      exit(1);
+    }
+    upd->button = button->runtime.widget;
+    upd->set = TRUE;
+    upd->flag = GTK_STATE_FLAG_CHECKED;
+    g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd, NULL);
+    press_button(button);
+  } else if (ev.value == UP) {
+    if (!is_button_pressed(button)) {
+      struct ButtonClickUpdate *upd = malloc(sizeof(struct ButtonClickUpdate));
+      if (upd == NULL) {
+        perror("Malloc failure");
+        exit(1);
+      }
+      upd->button = button->runtime.widget;
+      upd->set = FALSE;
+      upd->flag = GTK_STATE_FLAG_CHECKED;
+      g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd, NULL);
+    }
+    unpress_button(button);
+  }
+}
+
 void *keyboard_loop(void *args) {
   struct KeyboardThreadConfig *config = (struct KeyboardThreadConfig *)args;
 
@@ -82,34 +111,8 @@ void *keyboard_loop(void *args) {
           // Color tha buttons if sym is pressed
           for (int sym_i = 0; sym_i < config->buttons[i]->sym_count; sym_i++) {
             char *sym = config->buttons[i]->syms[sym_i];
-            if (ev.value == DOWN && strcasecmp(key_name, sym) == 0) {
-              struct ButtonClickUpdate *upd =
-                  malloc(sizeof(struct ButtonClickUpdate));
-              if (upd == NULL) {
-                perror("Malloc failure");
-                exit(1);
-              }
-              upd->button = config->buttons[i]->conf.runtime.widget;
-              upd->set = TRUE;
-              upd->flag = GTK_STATE_FLAG_CHECKED;
-              g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-                              NULL);
-              press_button(&config->buttons[i]->conf);
-            } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
-              if (!is_button_pressed(&config->buttons[i]->conf)) {
-                struct ButtonClickUpdate *upd =
-                    malloc(sizeof(struct ButtonClickUpdate));
-                if (upd == NULL) {
-                  perror("Malloc failure");
-                  exit(1);
-                }
-                upd->button = config->buttons[i]->conf.runtime.widget;
-                upd->set = FALSE;
-                upd->flag = GTK_STATE_FLAG_CHECKED;
-                g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-                                NULL);
-              }
-              unpress_button(&config->buttons[i]->conf);
+            if (strcasecmp(key_name, sym) == 0) {
+              handle_button_press(&config->buttons[i]->conf, ev);
             }
           }
         }
@@ -153,35 +156,7 @@ void *mouse_loop(void *args) {
       } else if (ev.type == EV_KEY) {
         for (int i = 0; i < config->size; i++) {
           if (config->buttons[i]->key == ev.code) {
-            if (ev.value == DOWN) {
-              struct ButtonClickUpdate *upd =
-                  malloc(sizeof(struct ButtonClickUpdate));
-              if (upd == NULL) {
-                perror("Malloc failure");
-                exit(1);
-              }
-              upd->button = config->buttons[i]->conf.runtime.widget;
-              upd->set = TRUE;
-              upd->flag = GTK_STATE_FLAG_CHECKED;
-              g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-                              NULL);
-              press_button(&config->buttons[i]->conf);
-            } else if (ev.value == UP) {
-              if (!is_button_pressed(&config->buttons[i]->conf)) {
-                struct ButtonClickUpdate *upd =
-                    malloc(sizeof(struct ButtonClickUpdate));
-                if (upd == NULL) {
-                  perror("Malloc failure");
-                  exit(1);
-                }
-                upd->button = config->buttons[i]->conf.runtime.widget;
-                upd->set = FALSE;
-                upd->flag = GTK_STATE_FLAG_CHECKED;
-                g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
-                                NULL);
-              }
-              unpress_button(&config->buttons[i]->conf);
-            }
+            handle_button_press(&config->buttons[i]->conf,ev);
           }
         }
         printf("Pressed mouse key: %i\n", ev.code);

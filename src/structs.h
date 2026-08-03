@@ -4,7 +4,6 @@
 #include <gtk/gtk.h>
 #include <linux/input.h>
 
-
 struct ButtonCoordinates {
   int x;
   int y;
@@ -61,6 +60,7 @@ struct InputLoopThread {
 };
 struct WindowConfig {
   GFileMonitor *watcher;
+  GtkCssProvider *css_provider;
   int layer;
   int edge;
   int edge2;

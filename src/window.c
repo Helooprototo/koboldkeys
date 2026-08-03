@@ -37,6 +37,7 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
     free(in->mouse.dev.devices);
   }
   g_object_unref(conf->window.watcher);
+  g_object_unref(conf->window.css_provider);
   free(conf->base_path);
   free(conf);
   return FALSE;
@@ -159,15 +160,16 @@ static void activate(GtkApplication *app, gpointer user_data) {
       malloc(strlen(conf->base_path) + strlen("style.css") * sizeof(char) + 1);
   strcpy(path, conf->base_path);
   strcat(path, "style.css");
-  GtkCssProvider *css_provider = gtk_css_provider_new();
-  gtk_css_provider_load_from_path(css_provider, path, NULL);
+  conf->window.css_provider = gtk_css_provider_new();
+  gtk_css_provider_load_from_path(conf->window.css_provider, path, NULL);
   GFile *css = g_file_new_for_path(path);
   conf->window.watcher = g_file_monitor(css, G_FILE_MONITOR_NONE, NULL, NULL);
-  gtk_style_context_add_provider_for_screen(gtk_widget_get_screen(window),
-                                            GTK_STYLE_PROVIDER(css_provider),
-                                            GTK_STYLE_PROVIDER_PRIORITY_USER);
+  gtk_style_context_add_provider_for_screen(
+      gtk_widget_get_screen(window),
+      GTK_STYLE_PROVIDER(conf->window.css_provider),
+      GTK_STYLE_PROVIDER_PRIORITY_USER);
   g_signal_connect(conf->window.watcher, "changed", G_CALLBACK(css_watcher),
-                   css_provider);
+                   conf->window.css_provider);
   g_object_unref(css);
   free(path);
   pthread_create(&in->input_thread.thread, NULL, input_loop, in);

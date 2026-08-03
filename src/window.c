@@ -78,9 +78,10 @@ gboolean button_click_update(void *data) {
   return G_SOURCE_REMOVE;
 }
 void configure_button(struct ButtonConfig *button) {
-  gtk_widget_set_size_request(button->button, button->coords->width,
-                              button->coords->height);
-  gtk_widget_set_name(button->button, button->name);
+  gtk_widget_set_size_request(button->runtime.widget,
+                              button->st.coords->width,
+                              button->st.coords->height);
+  gtk_widget_set_name(button->runtime.widget, button->st.name);
 }
 static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
@@ -89,10 +90,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
   int mouse_size = in->mouse.input.size;
   GtkWidget *window;
   for (int i = 0; i < mouse_size; i++) {
-    in->mouse.input.buttons[i]->conf.button = gtk_button_new();
+    in->mouse.input.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
   for (int i = 0; i < kbd_size; i++) {
-    in->kbd.input.buttons[i]->conf.button = gtk_button_new();
+    in->kbd.input.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
   GtkWidget *grid;
   GtkWidget *box;
@@ -123,14 +124,16 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(box), grid);
     for (int i = 0; i < kbd_size; i++) {
       struct ButtonConfig *button = &in->kbd.input.buttons[i]->conf;
-      GtkStyleContext *cntx = gtk_widget_get_style_context(button->button);
+      GtkStyleContext *cntx =
+          gtk_widget_get_style_context(button->runtime.widget);
       configure_button(button);
       gtk_style_context_add_class(cntx, "keyboardbutton");
-      gtk_button_set_label(GTK_BUTTON(button->button),
+      gtk_button_set_label(GTK_BUTTON(button->runtime.widget),
                            in->kbd.input.buttons[i]->label);
-      gtk_grid_attach(GTK_GRID(grid), button->button, button->coords->x,
-                      button->coords->y, button->coords->width,
-                      button->coords->height);
+      gtk_grid_attach(GTK_GRID(grid), button->runtime.widget,
+                      button->st.coords->x, button->st.coords->y,
+                      button->st.coords->width,
+                      button->st.coords->height);
     }
   }
   if (in->mouse.dev.device_count > 0) {
@@ -138,10 +141,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
     for (int i = 0; i < mouse_size; i++) {
       struct ButtonConfig *button = &in->mouse.input.buttons[i]->conf;
       configure_button(button);
-      GtkStyleContext *cntx = gtk_widget_get_style_context(button->button);
+      GtkStyleContext *cntx = gtk_widget_get_style_context(button->runtime.widget);
       gtk_style_context_add_class(cntx, "mousebutton");
-      gtk_fixed_put(GTK_FIXED(fixed), button->button, button->coords->x,
-                    button->coords->y);
+      gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget, button->st.coords->x,
+                    button->st.coords->y);
     }
     if (in->mouse.input.show_cursor) {
       struct MouseCursorConfig *cursor = &in->mouse.input.movement_widget;

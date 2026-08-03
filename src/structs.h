@@ -4,6 +4,14 @@
 #include <gtk/gtk.h>
 #include <linux/input.h>
 
+struct ButtonRuntimeData {
+  GtkWidget *widget;
+  int clicked_by; // atomic
+};
+struct ButtonStaticData {
+  char *name;
+  struct ButtonCoordinates *coords;
+};
 struct ButtonCoordinates {
   int x;
   int y;
@@ -12,10 +20,8 @@ struct ButtonCoordinates {
   int z;
 };
 struct ButtonConfig {
-  char *name;
-  GtkWidget *button;
-  struct ButtonCoordinates *coords;
-  int clicked_by; // atomic
+  struct ButtonRuntimeData runtime;
+  struct ButtonStaticData st;
 };
 struct KeyboardButtonConfig {
   char *label;

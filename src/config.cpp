@@ -147,8 +147,8 @@ void sort_mouse_buttons_z_index(struct MouseButtonConfig **buttons,
   while (is_unsorted) {
     is_unsorted = 0;
     for (int i = 0; i < button_count - 1; i++) {
-      if (buttons[i]->conf.coords->z >
-          buttons[i + 1]->conf.coords->z) {
+      if (buttons[i]->conf.st.coords->z >
+          buttons[i + 1]->conf.st.coords->z) {
         is_unsorted = 1;
         tmp = (int *)buttons[i + 1];
         buttons[i + 1] = buttons[i];
@@ -263,12 +263,12 @@ struct Config *config(int argc, char **argv) {
         (struct MouseButtonConfig *)malloc(sizeof(struct MouseButtonConfig));
     struct MouseButtonConfig *button =
         config->input.mouse.input.buttons[btn_index];
-    button->conf.coords =
+    button->conf.st.coords =
         (struct ButtonCoordinates *)malloc(sizeof(struct ButtonCoordinates));
-    map_coords(toml::node_view<toml::node>(value), button->conf.coords);
+    map_coords(toml::node_view<toml::node>(value), button->conf.st.coords);
     button->key = value["code"].value_or(0);
-    button->conf.clicked_by = 0;
-    button->conf.name = strdup(std::string(key).c_str());
+    button->conf.runtime.clicked_by = 0;
+    button->conf.st.name = strdup(std::string(key).c_str());
     btn_index += 1;
   });
   if (config->input.mouse.input.size > 0) {
@@ -283,7 +283,7 @@ struct Config *config(int argc, char **argv) {
             sizeof(struct KeyboardButtonConfig));
     struct KeyboardButtonConfig *button =
         config->input.kbd.input.buttons[btn_index];
-    button->conf.coords =
+    button->conf.st.coords =
         (struct ButtonCoordinates *)malloc(sizeof(struct ButtonCoordinates));
     if (value["sym"].is_array()) {
       size_t sym_count = value["sym"].as_array()->size();
@@ -311,12 +311,12 @@ struct Config *config(int argc, char **argv) {
                 << std::endl;
       button->sym_count = 0;
     }
-    button->conf.name = strdup(std::string(key).c_str());
+    button->conf.st.name = strdup(std::string(key).c_str());
 
     button->label = strdup(value["label"].value_or(value["sym"].value_or("")));
     button->case_label = strdup(value["case-label"].value_or(button->label));
-    button->conf.clicked_by = 0;
-    map_coords(toml::node_view<toml::node>(value), button->conf.coords);
+    button->conf.runtime.clicked_by = 0;
+    map_coords(toml::node_view<toml::node>(value), button->conf.st.coords);
     btn_index += 1;
   });
   config->window.mouse_padding = toml["window"]["mouse-padding"].value_or(0);

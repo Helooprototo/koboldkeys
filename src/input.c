@@ -14,10 +14,13 @@
 #define Y 1
 
 void press_button(struct ButtonConfig *button) {
-  atomic_fetch_add((_Atomic int *)&button->clicked_by, 1);
+  atomic_fetch_add((_Atomic int *)&button->runtime.clicked_by, 1);
 }
 void unpress_button(struct ButtonConfig *button) {
-  atomic_fetch_sub((_Atomic int *)&button->clicked_by, 1);
+  atomic_fetch_sub((_Atomic int *)&button->runtime.clicked_by, 1);
+}
+int is_button_pressed(struct ButtonConfig *button){
+  return (atomic_load((_Atomic int*)&button->runtime.clicked_by) > 1);
 }
 void *keyboard_loop(void *args) {
   struct KeyboardThreadConfig *config = (struct KeyboardThreadConfig *)args;
@@ -62,7 +65,7 @@ void *keyboard_loop(void *args) {
               perror("Malloc failure");
               exit(1);
             }
-            upd->button = config->buttons[i]->conf.button;
+            upd->button = config->buttons[i]->conf.runtime.widget;
             upd->name = config->buttons[i]->case_label;
             g_idle_add(button_label_update, upd);
           } else if (level != prev_caps_level) {
@@ -72,7 +75,7 @@ void *keyboard_loop(void *args) {
               perror("Malloc failure");
               exit(1);
             }
-            upd->button = config->buttons[i]->conf.button;
+            upd->button = config->buttons[i]->conf.runtime.widget;
             upd->name = config->buttons[i]->label;
             g_idle_add(button_label_update, upd);
           }
@@ -86,23 +89,21 @@ void *keyboard_loop(void *args) {
                 perror("Malloc failure");
                 exit(1);
               }
-              upd->button = config->buttons[i]->conf.button;
+              upd->button = config->buttons[i]->conf.runtime.widget;
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
               g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                               NULL);
               press_button(&config->buttons[i]->conf);
             } else if (ev.value == UP && strcasecmp(key_name, sym) == 0) {
-              if (atomic_load(
-                      (_Atomic int *)&config->buttons[i]->conf.clicked_by) <=
-                  1) {
+              if (!is_button_pressed(&config->buttons[i]->conf)) {
                 struct ButtonClickUpdate *upd =
                     malloc(sizeof(struct ButtonClickUpdate));
                 if (upd == NULL) {
                   perror("Malloc failure");
                   exit(1);
                 }
-                upd->button = config->buttons[i]->conf.button;
+                upd->button = config->buttons[i]->conf.runtime.widget;
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
                 g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
@@ -159,23 +160,21 @@ void *mouse_loop(void *args) {
                 perror("Malloc failure");
                 exit(1);
               }
-              upd->button = config->buttons[i]->conf.button;
+              upd->button = config->buttons[i]->conf.runtime.widget;
               upd->set = TRUE;
               upd->flag = GTK_STATE_FLAG_CHECKED;
               g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
                               NULL);
               press_button(&config->buttons[i]->conf);
             } else if (ev.value == UP) {
-              if (atomic_load(
-                      (_Atomic int *)&config->buttons[i]->conf.clicked_by) <=
-                  1) {
+              if (!is_button_pressed(&config->buttons[i]->conf)) {
                 struct ButtonClickUpdate *upd =
                     malloc(sizeof(struct ButtonClickUpdate));
                 if (upd == NULL) {
                   perror("Malloc failure");
                   exit(1);
                 }
-                upd->button = config->buttons[i]->conf.button;
+                upd->button = config->buttons[i]->conf.runtime.widget;
                 upd->set = FALSE;
                 upd->flag = GTK_STATE_FLAG_CHECKED;
                 g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_click_update, upd,
@@ -234,8 +233,8 @@ void *input_loop(void *args) {
     for (int x = 0; x < conf->kbd.input.buttons[i]->sym_count; x++) {
       free(conf->kbd.input.buttons[i]->syms[x]);
     }
-    free(conf->kbd.input.buttons[i]->conf.name);
-    free(conf->kbd.input.buttons[i]->conf.coords);
+    free(conf->kbd.input.buttons[i]->conf.st.name);
+    free(conf->kbd.input.buttons[i]->conf.st.coords);
     free(conf->kbd.input.buttons[i]->case_label);
     free(conf->kbd.input.buttons[i]->label);
     free(conf->kbd.input.buttons[i]->syms);
@@ -247,8 +246,8 @@ void *input_loop(void *args) {
     pthread_join(mouse_threads[i].thread, NULL);
   }
   for (int i = 0; i < conf->mouse.input.size; i++) {
-    free(conf->mouse.input.buttons[i]->conf.name);
-    free(conf->mouse.input.buttons[i]->conf.coords);
+    free(conf->mouse.input.buttons[i]->conf.st.name);
+    free(conf->mouse.input.buttons[i]->conf.st.coords);
     free(conf->mouse.input.buttons[i]);
   }
   free(conf->mouse.input.movement_widget.coords);

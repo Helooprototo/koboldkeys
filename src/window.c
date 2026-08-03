@@ -17,6 +17,12 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   pthread_mutex_unlock(&in->input_thread.mut);
   fflush(stdout);
   pthread_join(in->input_thread.thread, NULL);
+  // Clear main thread queue of any updates queued by input threads in their
+  // last moments Only really useful when the program isnt a layer shell window,
+  // and the desktop window gets closed through a keybind, which invokes an
+  // update in the thread
+  while (g_main_context_iteration(NULL, FALSE) == TRUE) {
+  };
   xkb_state_unref(in->kbd.input.state);
   for (int i = 0; i < in->kbd.dev.device_count; i++) {
     free(in->kbd.dev.devices[i]);

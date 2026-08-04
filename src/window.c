@@ -146,7 +146,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
       gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget, button->st.coords->x,
                     button->st.coords->y);
     }
-    if (in->mouse.input.show_cursor) {
+    if (in->mouse.input.movement_widget.should_show) {
       struct MouseCursorConfig *cursor = &in->mouse.input.movement_widget;
       cursor->widget = gtk_button_new();
       gtk_widget_set_name(cursor->widget, "cursor");

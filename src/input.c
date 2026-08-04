@@ -140,7 +140,7 @@ void *mouse_loop(void *args) {
         perror("Read error");
         break;
       };
-      if (ev.type == EV_REL && config->show_cursor) {
+      if (ev.type == EV_REL && config->movement_widget.should_show) {
         struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
         upd->mouse_widget = config->movement_widget.widget;
         upd->x = 0;
@@ -156,7 +156,7 @@ void *mouse_loop(void *args) {
       } else if (ev.type == EV_KEY) {
         for (int i = 0; i < config->size; i++) {
           if (config->buttons[i]->key == ev.code) {
-            handle_button_press(&config->buttons[i]->conf,ev);
+            handle_button_press(&config->buttons[i]->conf, ev);
           }
         }
         printf("Pressed mouse key: %i\n", ev.code);
@@ -225,7 +225,9 @@ void *input_loop(void *args) {
     free(conf->mouse.input.buttons[i]->conf.st.coords);
     free(conf->mouse.input.buttons[i]);
   }
-  free(conf->mouse.input.movement_widget.coords);
+  if (conf->mouse.input.movement_widget.should_show) {
+    free(conf->mouse.input.movement_widget.coords);
+  }
   free(conf->mouse.input.buttons);
   free(kbd_threads);
   free(mouse_threads);

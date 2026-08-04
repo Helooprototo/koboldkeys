@@ -36,6 +36,7 @@ struct MouseButtonConfig {
   struct ButtonConfig conf;
 };
 struct MouseCursorConfig {
+  int should_show;
   struct ButtonCoordinates *coords;
   GtkWidget *widget;
 };
@@ -90,7 +91,6 @@ struct DeviceConfig {
 struct MouseThreadConfig {
   char *event;
   int is_running; // Atomic
-  int show_cursor;
   size_t size;
   struct MouseCursorConfig movement_widget;
   struct MouseButtonConfig **buttons;

@@ -147,8 +147,7 @@ void sort_mouse_buttons_z_index(struct MouseButtonConfig **buttons,
   while (is_unsorted) {
     is_unsorted = 0;
     for (int i = 0; i < button_count - 1; i++) {
-      if (buttons[i]->conf.st.coords->z >
-          buttons[i + 1]->conf.st.coords->z) {
+      if (buttons[i]->conf.st.coords->z > buttons[i + 1]->conf.st.coords->z) {
         is_unsorted = 1;
         tmp = (int *)buttons[i + 1];
         buttons[i + 1] = buttons[i];
@@ -233,10 +232,14 @@ struct Config *config(int argc, char **argv) {
     perror("Malloc failure");
     exit(1);
   }
-  config->input.kbd.input.buttons = (struct KeyboardButtonConfig**)malloc(size * sizeof(struct KeyboardButtonConfig *));
+  config->input.kbd.input.buttons = (struct KeyboardButtonConfig **)malloc(
+      size * sizeof(struct KeyboardButtonConfig *));
+  config->input.kbd.input.size = size;
+  config->input.mouse.input.buttons = (struct MouseButtonConfig **)malloc(
+      mouse_size * sizeof(struct MouseButtonConfig *));
+  config->input.mouse.input.size = mouse_size;
   config->base_path = strdup(xdg_config);
   free(xdg_config);
-  config->input.kbd.input.size = size;
   map_devices(&config->input.mouse.dev, toml["input"]["mouse"]);
   map_devices(&config->input.kbd.dev, toml["input"]["keyboard"]);
   config->input.kbd.input.state = create_xkb(toml["xkb"]);
@@ -247,15 +250,15 @@ struct Config *config(int argc, char **argv) {
   config->window.layer = map_layer(toml["window"]["layer"]);
   config->window.layer_shell = map_bool(toml["window"]["is-layer-shell"]);
   config->window.paintable = map_bool(toml["window"]["transparent"]);
-  config->input.mouse.input.buttons = (struct MouseButtonConfig **)malloc(
-      mouse_size * sizeof(struct MouseButtonConfig *));
-  config->input.mouse.input.size = mouse_size;
-  config->input.mouse.input.show_cursor =
-      map_bool(toml["window"]["show-cursor"]);
-  config->input.mouse.input.movement_widget.coords =
-      (struct ButtonCoordinates *)malloc(sizeof(struct ButtonCoordinates));
-  map_coords(toml["mouse"]["cursor"],
-             config->input.mouse.input.movement_widget.coords);
+  if (toml["mouse"]["cursor"].is_table()) {
+    config->input.mouse.input.movement_widget.should_show = true;
+    config->input.mouse.input.movement_widget.coords =
+        (struct ButtonCoordinates *)malloc(sizeof(struct ButtonCoordinates));
+    map_coords(toml["mouse"]["cursor"],
+               config->input.mouse.input.movement_widget.coords);
+  } else {
+    config->input.mouse.input.movement_widget.should_show = false;
+  }
   int btn_index = 0;
   toml["mousebutton"].as_table()->for_each([&btn_index, config](
                                                auto &key, toml::table &value) {

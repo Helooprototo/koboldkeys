@@ -3,7 +3,6 @@
 ## If both anchors are the same, or the complete opposite (LEFT and LEFT or LEFT and RIGHT), itll be centered on one of the anchors
 ## First entry defaults to "bottom" if unset or invalid, second entry defaults to "left" if unset or invalid
 anchors=["bottom","right"]
-show-cursor=true
 # OPTIONAL: Layer to use, can be either background, bottom, top, or overlay. Set to overlay if unset. Can be a string or the numerical value of the layer
 layer="overlay"
 # OPTIONAL: Wether or not the window should be a layer shell or a regular window, set to true if unset. Can be a bool-ish value

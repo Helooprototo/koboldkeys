@@ -49,6 +49,10 @@ struct ButtonScrollUpdate{
   int axis;
   GtkWidget* button;
 };
+struct ButtonScrollClearUpdate{
+  unsigned int* g_source;
+  GtkWidget* button;
+};
 struct ButtonLabelUpdate {
   const char *name;
   GtkWidget *button;
@@ -92,11 +96,18 @@ struct DeviceConfig {
   size_t device_count;
   char **devices;
 };
+struct MouseWheelConfig{
+  int axis;
+  struct ButtonConfig conf;
+  unsigned int g_source;
+};
 struct MouseThreadConfig {
   char *event;
   int is_running; // Atomic
   size_t size;
   struct MouseCursorConfig movement_widget;
+  size_t wheel_size;
+  struct MouseWheelConfig **wheels;
   struct MouseButtonConfig **buttons;
 };
 struct MouseConfig {

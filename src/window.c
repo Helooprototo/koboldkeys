@@ -61,10 +61,13 @@ gboolean mouse_move_update(void *data) {
 }
 
 gboolean button_scroll_clear(void *data) {
-  struct ButtonScrollUpdate *update = (struct ButtonScrollUpdate *)data;
+  struct ButtonScrollClearUpdate *update = (struct ButtonScrollClearUpdate *)data;
   GtkStyleContext *cntx = gtk_widget_get_style_context(update->button);
-  char *removeClass = update->axis < 0 ? "down" : "up";
+  const char* removeClass = gtk_style_context_has_class(cntx,"down")? "down" : "up";
   gtk_style_context_remove_class(cntx, removeClass);
+  *update->g_source = 0;
+  //printf("update g_source: %u",*update->g_source);
+  g_free(update);
   return G_SOURCE_REMOVE;
 }
 
@@ -75,6 +78,7 @@ gboolean button_scroll_update(void *data) {
   gtk_style_context_add_class(cntx, class);
   char *removeClass = update->axis < 0 ? "up" : "down";
   gtk_style_context_remove_class(cntx, removeClass);
+  g_free(update);
   return G_SOURCE_REMOVE;
 }
 
@@ -105,13 +109,18 @@ static void activate(GtkApplication *app, gpointer user_data) {
   struct InputConfig *in = &conf->input;
   int kbd_size = in->kbd.input.size;
   int mouse_size = in->mouse.input.size;
+  int wheel_size = in->mouse.input.wheel_size;
   GtkWidget *window;
   for (int i = 0; i < mouse_size; i++) {
     in->mouse.input.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
+  for(int i=0;i<wheel_size;i++){
+    in->mouse.input.wheels[i]->conf.runtime.widget = gtk_button_new();
+  }
   for (int i = 0; i < kbd_size; i++) {
     in->kbd.input.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
+
   GtkWidget *grid;
   GtkWidget *box;
   GtkWidget *fixed;
@@ -156,6 +165,15 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(box), fixed);
     for (int i = 0; i < mouse_size; i++) {
       struct ButtonConfig *button = &in->mouse.input.buttons[i]->conf;
+      configure_button(button);
+      GtkStyleContext *cntx =
+          gtk_widget_get_style_context(button->runtime.widget);
+      gtk_style_context_add_class(cntx, "mousebutton");
+      gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget,
+                    button->st.coords->x, button->st.coords->y);
+    }
+    for (int i = 0; i < wheel_size; i++) {
+      struct ButtonConfig *button = &in->mouse.input.wheels[i]->conf;
       configure_button(button);
       GtkStyleContext *cntx =
           gtk_widget_get_style_context(button->runtime.widget);

@@ -221,12 +221,13 @@ struct Config *config(int argc, char **argv) {
   auto toml = toml::parse_file(path);
   free(path);
   if (!toml["button"].is_table() || !toml["input"].is_table() ||
-      !toml["mousebutton"].is_table()) {
-    perror("Could not find the necessary config structure");
+      !toml["mousebutton"].is_table() || !toml["mousewheel"].is_table()) {
+    fprintf(stderr,"Could not find the necessary config structure");
     exit(1);
   }
   size_t size = toml["button"].as_table()->size();
   size_t mouse_size = toml["mousebutton"].as_table()->size();
+  size_t wheel_size = toml["mousewheel"].as_table()->size();
   config = (Config *)malloc(sizeof(struct Config));
   if (config == NULL) {
     perror("Malloc failure");
@@ -238,6 +239,9 @@ struct Config *config(int argc, char **argv) {
   config->input.mouse.input.buttons = (struct MouseButtonConfig **)malloc(
       mouse_size * sizeof(struct MouseButtonConfig *));
   config->input.mouse.input.size = mouse_size;
+  config->input.mouse.input.wheels = (struct MouseWheelConfig **)malloc(
+      wheel_size * sizeof(struct MouseWheelConfig *));
+  config->input.mouse.input.wheel_size = wheel_size;
   config->base_path = strdup(xdg_config);
   free(xdg_config);
   map_devices(&config->input.mouse.dev, toml["input"]["mouse"]);
@@ -260,6 +264,18 @@ struct Config *config(int argc, char **argv) {
     config->input.mouse.input.movement_widget.should_show = false;
   }
   int btn_index = 0;
+  toml["mousewheel"].as_table()->for_each([&btn_index,config](auto &key,toml::table &value){
+    config->input.mouse.input.wheels[btn_index] = (struct MouseWheelConfig*)malloc(sizeof(struct MouseWheelConfig));
+    struct MouseWheelConfig *button = config->input.mouse.input.wheels[btn_index];
+    button->axis = value["axis"].value_or(0);
+    button->conf.st.coords = (struct ButtonCoordinates*)malloc(sizeof(struct ButtonCoordinates));
+    button->conf.st.name = strdup(std::string(key).c_str());
+    button->conf.runtime.clicked_by = 0;
+    button->g_source = 0;
+    map_coords(toml::node_view<toml::node>(value),button->conf.st.coords);
+    btn_index+=1;
+  });
+  btn_index=0;
   toml["mousebutton"].as_table()->for_each([&btn_index, config](
                                                auto &key, toml::table &value) {
     config->input.mouse.input.buttons[btn_index] =

@@ -140,7 +140,8 @@ void *mouse_loop(void *args) {
         perror("Read error");
         break;
       };
-      if (ev.type == EV_REL && config->movement_widget.should_show) {
+      if (ev.type == EV_REL && config->movement_widget.should_show &&
+          (ev.code != REL_WHEEL && ev.code != REL_WHEEL_HI_RES)) {
         struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
         upd->mouse_widget = config->movement_widget.widget;
         upd->x = 0;
@@ -154,12 +155,30 @@ void *mouse_loop(void *args) {
         upd->y += config->movement_widget.coords->y;
         g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
       } else if (ev.type == EV_KEY) {
+
         for (int i = 0; i < config->size; i++) {
           if (config->buttons[i]->key == ev.code) {
             handle_button_press(&config->buttons[i]->conf, ev);
           }
         }
         printf("Pressed mouse key: %i\n", ev.code);
+      } else if (ev.type == EV_REL && ev.code == REL_WHEEL) {
+        for (int i = 0; i < config->size; i++) {
+          if (config->buttons[i]->key == ev.code) {
+            struct ButtonScrollUpdate *upd =
+                malloc(sizeof(struct ButtonScrollUpdate));
+            if (upd == NULL) {
+              perror("Malloc failure");
+              exit(1);
+            }
+            upd->button = config->buttons[i]->conf.runtime.widget;
+            upd->axis = ev.value;
+            g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_scroll_update, upd,
+                            NULL);
+            g_timeout_add_full(G_PRIORITY_HIGH_IDLE, 500, button_scroll_clear,
+                               upd, NULL);
+          }
+        }
       }
     }
   }

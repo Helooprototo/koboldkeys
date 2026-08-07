@@ -45,6 +45,10 @@ struct ButtonClickUpdate {
   GtkWidget *button;
   int flag;
 };
+struct ButtonScrollUpdate{
+  int axis;
+  GtkWidget* button;
+};
 struct ButtonLabelUpdate {
   const char *name;
   GtkWidget *button;

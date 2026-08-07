@@ -164,7 +164,7 @@ void *mouse_loop(void *args) {
         printf("Pressed mouse key: %i\n", ev.code);
       } else if (ev.type == EV_REL && ev.code == REL_WHEEL) {
         for (int i = 0; i < config->size; i++) {
-          if (config->buttons[i]->key == ev.code) {
+          if (config->buttons[i]->key == ev.value) {
             struct ButtonScrollUpdate *upd =
                 malloc(sizeof(struct ButtonScrollUpdate));
             if (upd == NULL) {
@@ -173,10 +173,15 @@ void *mouse_loop(void *args) {
             }
             upd->button = config->buttons[i]->conf.runtime.widget;
             upd->axis = ev.value;
+            GtkStyleContext *cntx = gtk_widget_get_style_context(upd->button);
+
+            if (!gtk_style_context_has_class(cntx,
+                                             ev.value < 0 ? "down" : "up")) {
+              g_timeout_add_full(G_PRIORITY_HIGH_IDLE, 500, button_scroll_clear,
+                                 upd, NULL);
+            }
             g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_scroll_update, upd,
                             NULL);
-            g_timeout_add_full(G_PRIORITY_HIGH_IDLE, 500, button_scroll_clear,
-                               upd, NULL);
           }
         }
       }

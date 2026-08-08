@@ -66,7 +66,6 @@ gboolean button_scroll_clear(void *data) {
   const char* removeClass = gtk_style_context_has_class(cntx,"down")? "down" : "up";
   gtk_style_context_remove_class(cntx, removeClass);
   *update->g_source = 0;
-  //printf("update g_source: %u",*update->g_source);
   g_free(update);
   return G_SOURCE_REMOVE;
 }

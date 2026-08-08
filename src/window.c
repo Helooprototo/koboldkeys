@@ -177,7 +177,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
       configure_button(button);
       GtkStyleContext *cntx =
           gtk_widget_get_style_context(button->runtime.widget);
-      gtk_style_context_add_class(cntx, "mousebutton");
+      gtk_style_context_add_class(cntx, "mousewheel");
       gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget,
                     button->st.coords->x, button->st.coords->y);
     }

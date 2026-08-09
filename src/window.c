@@ -43,6 +43,25 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   return FALSE;
 }
 
+void sort_mouse_buttons_z_index(struct ButtonConfig **buttons,
+                                size_t button_count) {
+  int *tmp;
+  int is_unsorted = 1;
+  while (is_unsorted) {
+    is_unsorted = 0;
+    for (int i = 0; i < button_count - 1; i++) {
+      struct ButtonConfig *conf = (struct ButtonConfig *)buttons[i];
+      struct ButtonConfig *nextConf = (struct ButtonConfig *)buttons[i + 1];
+      if (conf->st.coords->z > nextConf->st.coords->z) {
+        is_unsorted = 1;
+        tmp = (int *)buttons[i + 1];
+        buttons[i + 1] = buttons[i];
+        buttons[i] = (struct ButtonConfig *)tmp;
+      };
+    }
+  }
+}
+
 static void css_watcher(GFileMonitor *monitor, GFile *file, GFile *other_file,
                         GFileMonitorEvent event_type, gpointer user_data) {
   GtkCssProvider *css_provider = (GtkCssProvider *)user_data;
@@ -61,9 +80,11 @@ gboolean mouse_move_update(void *data) {
 }
 
 gboolean button_scroll_clear(void *data) {
-  struct ButtonScrollClearUpdate *update = (struct ButtonScrollClearUpdate *)data;
+  struct ButtonScrollClearUpdate *update =
+      (struct ButtonScrollClearUpdate *)data;
   GtkStyleContext *cntx = gtk_widget_get_style_context(update->button);
-  const char* removeClass = gtk_style_context_has_class(cntx,"down")? "down" : "up";
+  const char *removeClass =
+      gtk_style_context_has_class(cntx, "down") ? "down" : "up";
   gtk_style_context_remove_class(cntx, removeClass);
   *update->g_source = 0;
   g_free(update);
@@ -99,8 +120,10 @@ gboolean button_click_update(void *data) {
   return G_SOURCE_REMOVE;
 }
 void configure_button(struct ButtonConfig *button) {
+  GtkStyleContext *cntx = gtk_widget_get_style_context(button->runtime.widget);
   gtk_widget_set_size_request(button->runtime.widget, button->st.coords->width,
                               button->st.coords->height);
+  gtk_style_context_add_class(cntx, button->st.css_class);
   gtk_widget_set_name(button->runtime.widget, button->st.name);
 }
 static void activate(GtkApplication *app, gpointer user_data) {
@@ -113,7 +136,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
   for (int i = 0; i < mouse_size; i++) {
     in->mouse.input.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
-  for(int i=0;i<wheel_size;i++){
+  for (int i = 0; i < wheel_size; i++) {
     in->mouse.input.wheels[i]->conf.runtime.widget = gtk_button_new();
   }
   for (int i = 0; i < kbd_size; i++) {
@@ -149,10 +172,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(box), grid);
     for (int i = 0; i < kbd_size; i++) {
       struct ButtonConfig *button = &in->kbd.input.buttons[i]->conf;
-      GtkStyleContext *cntx =
-          gtk_widget_get_style_context(button->runtime.widget);
       configure_button(button);
-      gtk_style_context_add_class(cntx, "keyboardbutton");
       gtk_button_set_label(GTK_BUTTON(button->runtime.widget),
                            in->kbd.input.buttons[i]->label);
       gtk_grid_attach(GTK_GRID(grid), button->runtime.widget,
@@ -162,24 +182,33 @@ static void activate(GtkApplication *app, gpointer user_data) {
   }
   if (in->mouse.dev.device_count > 0) {
     gtk_container_add(GTK_CONTAINER(box), fixed);
+    void **mouse_fixed_add_arr =
+        malloc(sizeof(struct ButtonConfig) * (mouse_size + wheel_size));
+    if (mouse_fixed_add_arr == NULL) {
+      perror("Failed to allocate");
+      exit(1);
+    }
+    size_t mouse_fixed_add_arr_size = 0;
     for (int i = 0; i < mouse_size; i++) {
-      struct ButtonConfig *button = &in->mouse.input.buttons[i]->conf;
-      configure_button(button);
-      GtkStyleContext *cntx =
-          gtk_widget_get_style_context(button->runtime.widget);
-      gtk_style_context_add_class(cntx, "mousebutton");
-      gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget,
-                    button->st.coords->x, button->st.coords->y);
+      mouse_fixed_add_arr[mouse_fixed_add_arr_size] =
+          (void *)&in->mouse.input.buttons[i]->conf;
+      mouse_fixed_add_arr_size++;
     }
     for (int i = 0; i < wheel_size; i++) {
-      struct ButtonConfig *button = &in->mouse.input.wheels[i]->conf;
+      mouse_fixed_add_arr[mouse_fixed_add_arr_size] =
+          (void *)&in->mouse.input.wheels[i]->conf;
+      mouse_fixed_add_arr_size++;
+    }
+    sort_mouse_buttons_z_index((struct ButtonConfig **)mouse_fixed_add_arr,
+                               mouse_fixed_add_arr_size);
+    for (int i = 0; i < mouse_fixed_add_arr_size; i++) {
+      struct ButtonConfig *button = mouse_fixed_add_arr[i];
+      printf("%i\n", button->st.coords->z);
       configure_button(button);
-      GtkStyleContext *cntx =
-          gtk_widget_get_style_context(button->runtime.widget);
-      gtk_style_context_add_class(cntx, "mousewheel");
       gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget,
                     button->st.coords->x, button->st.coords->y);
     }
+    free(mouse_fixed_add_arr);
     if (in->mouse.input.movement_widget.should_show) {
       struct MouseCursorConfig *cursor = &in->mouse.input.movement_widget;
       cursor->widget = gtk_button_new();

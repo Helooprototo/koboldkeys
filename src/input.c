@@ -164,7 +164,8 @@ void *mouse_loop(void *args) {
         printf("Pressed mouse key: %i\n", ev.code);
       } else if (ev.type == EV_REL && ev.code == REL_WHEEL) {
         for (int i = 0; i < config->wheel_size; i++) {
-          if (config->wheels[i]->axis == ev.value || config->wheels[i]->axis == 2) {
+          if (config->wheels[i]->axis == ev.value ||
+              config->wheels[i]->axis == 2) {
             struct ButtonScrollUpdate *upd =
                 malloc(sizeof(struct ButtonScrollUpdate));
             if (upd == NULL) {
@@ -177,12 +178,14 @@ void *mouse_loop(void *args) {
             if (config->wheels[i]->g_source != 0) {
               g_source_remove(config->wheels[i]->g_source);
             }
-              struct ButtonScrollClearUpdate *clear = malloc(sizeof(struct ButtonScrollClearUpdate));
-              clear->button = config->wheels[i]->conf.runtime.widget;
-              clear->g_source = &config->wheels[i]->g_source;
-              config->wheels[i]->g_source = g_timeout_add_full(G_PRIORITY_HIGH_IDLE, config->wheel_clear_timeout, button_scroll_clear,
-                                 clear, NULL);
-            
+            struct ButtonScrollClearUpdate *clear =
+                malloc(sizeof(struct ButtonScrollClearUpdate));
+            clear->button = config->wheels[i]->conf.runtime.widget;
+            clear->g_source = &config->wheels[i]->g_source;
+            config->wheels[i]->g_source = g_timeout_add_full(
+                G_PRIORITY_HIGH_IDLE, config->wheel_clear_timeout,
+                button_scroll_clear, clear, NULL);
+
             g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_scroll_update, upd,
                             NULL);
           }
@@ -237,15 +240,17 @@ void *input_loop(void *args) {
     }
     free(conf->kbd.input.buttons[i]->conf.st.name);
     free(conf->kbd.input.buttons[i]->conf.st.coords);
+    free(conf->kbd.input.buttons[i]->conf.st.css_class);
     free(conf->kbd.input.buttons[i]->case_label);
     free(conf->kbd.input.buttons[i]->label);
     free(conf->kbd.input.buttons[i]->syms);
     free(conf->kbd.input.buttons[i]);
   }
   free(conf->kbd.input.buttons);
-  for(int i=0;i<conf->mouse.input.wheel_size;i++){
+  for (int i = 0; i < conf->mouse.input.wheel_size; i++) {
     free(conf->mouse.input.wheels[i]->conf.st.name);
     free(conf->mouse.input.wheels[i]->conf.st.coords);
+    free(conf->mouse.input.wheels[i]->conf.st.css_class);
     free(conf->mouse.input.wheels[i]);
   }
   free(conf->mouse.input.wheels);
@@ -256,6 +261,7 @@ void *input_loop(void *args) {
   for (int i = 0; i < conf->mouse.input.size; i++) {
     free(conf->mouse.input.buttons[i]->conf.st.name);
     free(conf->mouse.input.buttons[i]->conf.st.coords);
+    free(conf->mouse.input.buttons[i]->conf.st.css_class);
     free(conf->mouse.input.buttons[i]);
   }
   if (conf->mouse.input.movement_widget.should_show) {

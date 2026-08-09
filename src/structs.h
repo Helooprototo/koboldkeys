@@ -10,6 +10,7 @@ struct ButtonRuntimeData {
 };
 struct ButtonStaticData {
   char *name;
+  char *css_class;
   struct ButtonCoordinates *coords;
 };
 struct ButtonCoordinates {

@@ -140,35 +140,15 @@ int map_layer(toml::node_view<toml::node> layer) {
   }
 }
 void init_button(struct ButtonConfig *button,
-                 toml::node_view<toml::node> coords, const char *name) {
+                 toml::node_view<toml::node> coords, const char *name,const char *css_class) {
   button->st.coords =
       (struct ButtonCoordinates *)malloc(sizeof(struct ButtonCoordinates));
   map_coords(coords, button->st.coords);
   button->st.name = strdup(name);
+  button->st.css_class = strdup(css_class);
   button->runtime.clicked_by = 0;
 }
-void sort_mouse_buttons_z_index(char **buttons, size_t offset,
-                                size_t button_count) {
-  int *tmp;
-  int is_unsorted = 1;
-  while (is_unsorted) {
-    is_unsorted = 0;
-    for (int i = 0; i < button_count - 1; i++) {
-      // Mousebutton struct pointer
-      char *button = (char *)(*(buttons + i) );
-      // Pointer to next button
-      char *nextButton = (char *)(*(buttons + (i + 1)));
-      ButtonConfig *conf = (ButtonConfig *)(button + offset);
-      ButtonConfig *nextConf = (ButtonConfig *)(nextButton + offset);
-      if (conf->st.coords->z > nextConf->st.coords->z) {
-        is_unsorted = 1;
-        tmp = (int *)buttons[i + 1];
-        buttons[i + 1] = buttons[i];
-        buttons[i] = (char*)tmp;
-      };
-    }
-  }
-}
+
 extern "C" char *get_config_path(int argc, char **argv);
 char *get_config_path(int argc, char **argv) {
   char *path;
@@ -284,7 +264,7 @@ struct Config *config(int argc, char **argv) {
         struct MouseWheelConfig *button =
             config->input.mouse.input.wheels[btn_index];
         init_button(&button->conf, toml::node_view<toml::node>(value),
-                    std::string(key).c_str());
+                    std::string(key).c_str(),"mousewheel");
         button->axis = value["axis"].value_or(0);
         button->g_source = 0;
         btn_index += 1;
@@ -299,19 +279,10 @@ struct Config *config(int argc, char **argv) {
     struct MouseButtonConfig *button =
         config->input.mouse.input.buttons[btn_index];
     init_button(&button->conf, toml::node_view<toml::node>(value),
-                std::string(key).c_str());
+                std::string(key).c_str(),"mousebutton");
     button->key = value["code"].value_or(0);
     btn_index += 1;
   });
-  if (config->input.mouse.input.size > 0) {
-    sort_mouse_buttons_z_index((char **)config->input.mouse.input.buttons,
-                               offsetof(struct MouseButtonConfig, conf),
-                               config->input.mouse.input.size);
-
-    sort_mouse_buttons_z_index((char **)config->input.mouse.input.wheels,
-                               offsetof(struct MouseWheelConfig, conf),
-                               config->input.mouse.input.wheel_size);
-  }
   btn_index = 0;
   toml["button"].as_table()->for_each([config, &btn_index,
                                        size](auto &key, toml::table &value) {
@@ -321,7 +292,7 @@ struct Config *config(int argc, char **argv) {
     struct KeyboardButtonConfig *button =
         config->input.kbd.input.buttons[btn_index];
     init_button(&button->conf, toml::node_view<toml::node>(value),
-                std::string(key).c_str());
+                std::string(key).c_str(),"keyboardbutton");
     if (value["sym"].is_array()) {
       size_t sym_count = value["sym"].as_array()->size();
       button->sym_count = sym_count;

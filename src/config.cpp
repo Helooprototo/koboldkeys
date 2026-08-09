@@ -147,18 +147,24 @@ void init_button(struct ButtonConfig *button,
   button->st.name = strdup(name);
   button->runtime.clicked_by = 0;
 }
-void sort_mouse_buttons_z_index(struct MouseButtonConfig **buttons,
+void sort_mouse_buttons_z_index(char **buttons, size_t offset,
                                 size_t button_count) {
   int *tmp;
   int is_unsorted = 1;
   while (is_unsorted) {
     is_unsorted = 0;
     for (int i = 0; i < button_count - 1; i++) {
-      if (buttons[i]->conf.st.coords->z > buttons[i + 1]->conf.st.coords->z) {
+      // Mousebutton struct pointer
+      char *button = (char *)(*(buttons + i) );
+      // Pointer to next button
+      char *nextButton = (char *)(*(buttons + (i + 1)));
+      ButtonConfig *conf = (ButtonConfig *)(button + offset);
+      ButtonConfig *nextConf = (ButtonConfig *)(nextButton + offset);
+      if (conf->st.coords->z > nextConf->st.coords->z) {
         is_unsorted = 1;
         tmp = (int *)buttons[i + 1];
         buttons[i + 1] = buttons[i];
-        buttons[i] = (struct MouseButtonConfig *)tmp;
+        buttons[i] = (char*)tmp;
       };
     }
   }
@@ -283,7 +289,8 @@ struct Config *config(int argc, char **argv) {
         button->g_source = 0;
         btn_index += 1;
       });
-  config->input.mouse.input.wheel_clear_timeout = toml["wheel-clear-timeout"].value_or(0);
+  config->input.mouse.input.wheel_clear_timeout =
+      toml["wheel-clear-timeout"].value_or(500);
   btn_index = 0;
   toml["mousebutton"].as_table()->for_each([&btn_index, config](
                                                auto &key, toml::table &value) {
@@ -297,8 +304,13 @@ struct Config *config(int argc, char **argv) {
     btn_index += 1;
   });
   if (config->input.mouse.input.size > 0) {
-    sort_mouse_buttons_z_index(config->input.mouse.input.buttons,
+    sort_mouse_buttons_z_index((char **)config->input.mouse.input.buttons,
+                               offsetof(struct MouseButtonConfig, conf),
                                config->input.mouse.input.size);
+
+    sort_mouse_buttons_z_index((char **)config->input.mouse.input.wheels,
+                               offsetof(struct MouseWheelConfig, conf),
+                               config->input.mouse.input.wheel_size);
   }
   btn_index = 0;
   toml["button"].as_table()->for_each([config, &btn_index,

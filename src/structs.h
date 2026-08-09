@@ -103,6 +103,7 @@ struct MouseWheelConfig{
 };
 struct MouseThreadConfig {
   char *event;
+  int wheel_clear_timeout;
   int is_running; // Atomic
   size_t size;
   struct MouseCursorConfig movement_widget;

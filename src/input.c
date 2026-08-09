@@ -180,7 +180,7 @@ void *mouse_loop(void *args) {
               struct ButtonScrollClearUpdate *clear = malloc(sizeof(struct ButtonScrollClearUpdate));
               clear->button = config->wheels[i]->conf.runtime.widget;
               clear->g_source = &config->wheels[i]->g_source;
-              config->wheels[i]->g_source = g_timeout_add_full(G_PRIORITY_HIGH_IDLE, 500, button_scroll_clear,
+              config->wheels[i]->g_source = g_timeout_add_full(G_PRIORITY_HIGH_IDLE, config->wheel_clear_timeout, button_scroll_clear,
                                  clear, NULL);
             
             g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_scroll_update, upd,

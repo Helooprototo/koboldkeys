@@ -283,6 +283,7 @@ struct Config *config(int argc, char **argv) {
         button->g_source = 0;
         btn_index += 1;
       });
+  config->input.mouse.input.wheel_clear_timeout = toml["wheel-clear-timeout"].value_or(0);
   btn_index = 0;
   toml["mousebutton"].as_table()->for_each([&btn_index, config](
                                                auto &key, toml::table &value) {

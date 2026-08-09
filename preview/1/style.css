@@ -9,11 +9,13 @@ button{
     box-shadow:none;
     border:none;
     background-size: 100% 100%;
+
 }
 .keyboardbutton:checked{
     background-image: url("key_pressed.svg");
     background-position: center;
     background-size: 100% 100%;
+    /*background: green; */
 }
 .mousebutton{
     background:white;
@@ -34,4 +36,22 @@ button{
     background-color: transparent;
     outline:none;
     background-image: url("cursor.svg");
+}
+.mousewheel{
+    background-color:transparent;
+    border:none;
+    border-width: 0;
+    box-shadow: none;
+    outline: none;
+    border-radius: 0;
+}
+.mousewheel.down{
+    background-position:center;
+    background-size: 100% 100%;
+    background-image: url("down_arrow.svg")
+}
+.mousewheel.up{
+    background-size: 100% 100%;
+    background-position:center;
+    background-image: url("up_arrow.svg")
 }

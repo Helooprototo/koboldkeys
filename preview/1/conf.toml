@@ -100,3 +100,15 @@ width=5
 height=20
 y=-60
 x=0
+
+[mousewheel.wheeldown]
+axis=1
+width=20
+height=15
+x=15
+[mousewheel.wheelup]
+axis=-1
+width=20
+height=15
+x=15
+y=-15

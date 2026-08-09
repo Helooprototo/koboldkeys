@@ -60,6 +60,27 @@ gboolean mouse_move_update(void *data) {
   return G_SOURCE_REMOVE;
 }
 
+gboolean button_scroll_clear(void *data) {
+  struct ButtonScrollClearUpdate *update = (struct ButtonScrollClearUpdate *)data;
+  GtkStyleContext *cntx = gtk_widget_get_style_context(update->button);
+  const char* removeClass = gtk_style_context_has_class(cntx,"down")? "down" : "up";
+  gtk_style_context_remove_class(cntx, removeClass);
+  *update->g_source = 0;
+  g_free(update);
+  return G_SOURCE_REMOVE;
+}
+
+gboolean button_scroll_update(void *data) {
+  struct ButtonScrollUpdate *update = (struct ButtonScrollUpdate *)data;
+  GtkStyleContext *cntx = gtk_widget_get_style_context(update->button);
+  char *class = update->axis < 0 ? "down" : "up";
+  gtk_style_context_add_class(cntx, class);
+  char *removeClass = update->axis < 0 ? "up" : "down";
+  gtk_style_context_remove_class(cntx, removeClass);
+  g_free(update);
+  return G_SOURCE_REMOVE;
+}
+
 gboolean button_label_update(void *data) {
   struct ButtonLabelUpdate *update = (struct ButtonLabelUpdate *)data;
   gtk_button_set_label(GTK_BUTTON(update->button), update->name);
@@ -78,8 +99,7 @@ gboolean button_click_update(void *data) {
   return G_SOURCE_REMOVE;
 }
 void configure_button(struct ButtonConfig *button) {
-  gtk_widget_set_size_request(button->runtime.widget,
-                              button->st.coords->width,
+  gtk_widget_set_size_request(button->runtime.widget, button->st.coords->width,
                               button->st.coords->height);
   gtk_widget_set_name(button->runtime.widget, button->st.name);
 }
@@ -88,13 +108,18 @@ static void activate(GtkApplication *app, gpointer user_data) {
   struct InputConfig *in = &conf->input;
   int kbd_size = in->kbd.input.size;
   int mouse_size = in->mouse.input.size;
+  int wheel_size = in->mouse.input.wheel_size;
   GtkWidget *window;
   for (int i = 0; i < mouse_size; i++) {
     in->mouse.input.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
+  for(int i=0;i<wheel_size;i++){
+    in->mouse.input.wheels[i]->conf.runtime.widget = gtk_button_new();
+  }
   for (int i = 0; i < kbd_size; i++) {
     in->kbd.input.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
+
   GtkWidget *grid;
   GtkWidget *box;
   GtkWidget *fixed;
@@ -132,8 +157,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
                            in->kbd.input.buttons[i]->label);
       gtk_grid_attach(GTK_GRID(grid), button->runtime.widget,
                       button->st.coords->x, button->st.coords->y,
-                      button->st.coords->width,
-                      button->st.coords->height);
+                      button->st.coords->width, button->st.coords->height);
     }
   }
   if (in->mouse.dev.device_count > 0) {
@@ -141,12 +165,22 @@ static void activate(GtkApplication *app, gpointer user_data) {
     for (int i = 0; i < mouse_size; i++) {
       struct ButtonConfig *button = &in->mouse.input.buttons[i]->conf;
       configure_button(button);
-      GtkStyleContext *cntx = gtk_widget_get_style_context(button->runtime.widget);
+      GtkStyleContext *cntx =
+          gtk_widget_get_style_context(button->runtime.widget);
       gtk_style_context_add_class(cntx, "mousebutton");
-      gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget, button->st.coords->x,
-                    button->st.coords->y);
+      gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget,
+                    button->st.coords->x, button->st.coords->y);
     }
-    if (in->mouse.input.show_cursor) {
+    for (int i = 0; i < wheel_size; i++) {
+      struct ButtonConfig *button = &in->mouse.input.wheels[i]->conf;
+      configure_button(button);
+      GtkStyleContext *cntx =
+          gtk_widget_get_style_context(button->runtime.widget);
+      gtk_style_context_add_class(cntx, "mousewheel");
+      gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget,
+                    button->st.coords->x, button->st.coords->y);
+    }
+    if (in->mouse.input.movement_widget.should_show) {
       struct MouseCursorConfig *cursor = &in->mouse.input.movement_widget;
       cursor->widget = gtk_button_new();
       gtk_widget_set_name(cursor->widget, "cursor");

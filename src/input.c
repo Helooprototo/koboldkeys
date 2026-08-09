@@ -140,7 +140,8 @@ void *mouse_loop(void *args) {
         perror("Read error");
         break;
       };
-      if (ev.type == EV_REL && config->show_cursor) {
+      if (ev.type == EV_REL && config->movement_widget.should_show &&
+          (ev.code != REL_WHEEL && ev.code != REL_WHEEL_HI_RES)) {
         struct MouseMoveUpdate *upd = malloc(sizeof(struct MouseMoveUpdate));
         upd->mouse_widget = config->movement_widget.widget;
         upd->x = 0;
@@ -154,12 +155,38 @@ void *mouse_loop(void *args) {
         upd->y += config->movement_widget.coords->y;
         g_idle_add_full(G_PRIORITY_HIGH_IDLE, mouse_move_update, upd, NULL);
       } else if (ev.type == EV_KEY) {
+
         for (int i = 0; i < config->size; i++) {
           if (config->buttons[i]->key == ev.code) {
-            handle_button_press(&config->buttons[i]->conf,ev);
+            handle_button_press(&config->buttons[i]->conf, ev);
           }
         }
         printf("Pressed mouse key: %i\n", ev.code);
+      } else if (ev.type == EV_REL && ev.code == REL_WHEEL) {
+        for (int i = 0; i < config->wheel_size; i++) {
+          if (config->wheels[i]->axis == ev.value || config->wheels[i]->axis == 2) {
+            struct ButtonScrollUpdate *upd =
+                malloc(sizeof(struct ButtonScrollUpdate));
+            if (upd == NULL) {
+              perror("Malloc failure");
+              exit(1);
+            }
+            upd->button = config->wheels[i]->conf.runtime.widget;
+            upd->axis = ev.value;
+
+            if (config->wheels[i]->g_source != 0) {
+              g_source_remove(config->wheels[i]->g_source);
+            }
+              struct ButtonScrollClearUpdate *clear = malloc(sizeof(struct ButtonScrollClearUpdate));
+              clear->button = config->wheels[i]->conf.runtime.widget;
+              clear->g_source = &config->wheels[i]->g_source;
+              config->wheels[i]->g_source = g_timeout_add_full(G_PRIORITY_HIGH_IDLE, config->wheel_clear_timeout, button_scroll_clear,
+                                 clear, NULL);
+            
+            g_idle_add_full(G_PRIORITY_HIGH_IDLE, button_scroll_update, upd,
+                            NULL);
+          }
+        }
       }
     }
   }
@@ -216,6 +243,12 @@ void *input_loop(void *args) {
     free(conf->kbd.input.buttons[i]);
   }
   free(conf->kbd.input.buttons);
+  for(int i=0;i<conf->mouse.input.wheel_size;i++){
+    free(conf->mouse.input.wheels[i]->conf.st.name);
+    free(conf->mouse.input.wheels[i]->conf.st.coords);
+    free(conf->mouse.input.wheels[i]);
+  }
+  free(conf->mouse.input.wheels);
   for (int i = 0; i < conf->mouse.dev.device_count; i++) {
     atomic_store((_Atomic int *)&mouse_threads[i].thread_conf->is_running, 0);
     pthread_join(mouse_threads[i].thread, NULL);
@@ -225,7 +258,9 @@ void *input_loop(void *args) {
     free(conf->mouse.input.buttons[i]->conf.st.coords);
     free(conf->mouse.input.buttons[i]);
   }
-  free(conf->mouse.input.movement_widget.coords);
+  if (conf->mouse.input.movement_widget.should_show) {
+    free(conf->mouse.input.movement_widget.coords);
+  }
   free(conf->mouse.input.buttons);
   free(kbd_threads);
   free(mouse_threads);

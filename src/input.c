@@ -198,7 +198,21 @@ void *mouse_loop(void *args) {
   free(config);
   return (void *)0;
 }
-
+void destroy_button_static_data(struct ButtonConfig *button) {
+  free(button->st.name);
+  free(button->st.coords);
+  free(button->st.css_class);
+}
+void destroy_keyboard_button(struct KeyboardButtonConfig *button) {
+  for (int x = 0; x < button->sym_count; x++) {
+    free(button->syms[x]);
+  }
+  destroy_button_static_data(&button->conf);
+  free(button->case_label);
+  free(button->label);
+  free(button->syms);
+  free(button);
+}
 void *input_loop(void *args) {
   struct InputConfig *conf = (struct InputConfig *)args;
   struct KeyboardInputThreadContainer *kbd_threads = malloc(
@@ -235,22 +249,11 @@ void *input_loop(void *args) {
     pthread_join(kbd_threads[i].thread, NULL);
   }
   for (int i = 0; i < conf->kbd.input.size; i++) {
-    for (int x = 0; x < conf->kbd.input.buttons[i]->sym_count; x++) {
-      free(conf->kbd.input.buttons[i]->syms[x]);
-    }
-    free(conf->kbd.input.buttons[i]->conf.st.name);
-    free(conf->kbd.input.buttons[i]->conf.st.coords);
-    free(conf->kbd.input.buttons[i]->conf.st.css_class);
-    free(conf->kbd.input.buttons[i]->case_label);
-    free(conf->kbd.input.buttons[i]->label);
-    free(conf->kbd.input.buttons[i]->syms);
-    free(conf->kbd.input.buttons[i]);
+    destroy_keyboard_button(conf->kbd.input.buttons[i]);
   }
   free(conf->kbd.input.buttons);
   for (int i = 0; i < conf->mouse.input.wheel_size; i++) {
-    free(conf->mouse.input.wheels[i]->conf.st.name);
-    free(conf->mouse.input.wheels[i]->conf.st.coords);
-    free(conf->mouse.input.wheels[i]->conf.st.css_class);
+    destroy_button_static_data(&conf->mouse.input.wheels[i]->conf);
     free(conf->mouse.input.wheels[i]);
   }
   free(conf->mouse.input.wheels);
@@ -259,9 +262,7 @@ void *input_loop(void *args) {
     pthread_join(mouse_threads[i].thread, NULL);
   }
   for (int i = 0; i < conf->mouse.input.size; i++) {
-    free(conf->mouse.input.buttons[i]->conf.st.name);
-    free(conf->mouse.input.buttons[i]->conf.st.coords);
-    free(conf->mouse.input.buttons[i]->conf.st.css_class);
+    destroy_button_static_data(&conf->mouse.input.buttons[i]->conf);
     free(conf->mouse.input.buttons[i]);
   }
   if (conf->mouse.input.movement_widget.should_show) {

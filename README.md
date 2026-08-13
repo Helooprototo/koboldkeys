@@ -57,6 +57,14 @@ Mouse keys can be selected through the `mousebutton` class.
 }
 ```
 
+Mouse wheels can be selected through the `mousewheel` class.
+
+```css
+.mousewheel{
+    color:transparent;
+}
+```
+
 The "Pressed" state of a key can be selected through the `:checked` state.
 
 ```css
@@ -64,6 +72,17 @@ The "Pressed" state of a key can be selected through the `:checked` state.
     background: orange;
 }
 ```
+
+For mouse wheels the Up and Down state can be selected through the `up` and `down` *class* respectively.
+
+```css
+.mousewheel.up{
+    background:green;
+}
+
+.mousewheel.down{
+    background:red;
+}
 
 A specific key can be selected through the key given to it in the `config.toml` file
 

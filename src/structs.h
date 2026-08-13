@@ -46,13 +46,13 @@ struct ButtonClickUpdate {
   GtkWidget *button;
   int flag;
 };
-struct ButtonScrollUpdate{
+struct ButtonScrollUpdate {
   int axis;
-  GtkWidget* button;
+  GtkWidget *button;
 };
-struct ButtonScrollClearUpdate{
-  unsigned int* g_source;
-  GtkWidget* button;
+struct ButtonScrollClearUpdate {
+  unsigned int *g_source;
+  GtkWidget *button;
 };
 struct ButtonLabelUpdate {
   const char *name;
@@ -85,31 +85,31 @@ struct WindowConfig {
   int mouse_padding;
   int layer_margin;
 };
-struct KeyboardInputThreadContainer {
-  pthread_t thread;
-  struct KeyboardThreadConfig *thread_conf;
+struct ThreadConfig {
+  char *event;
+  int is_running; // atomic
 };
-struct MouseInputThreadContainer {
+struct ThreadContainer{
   pthread_t thread;
-  struct MouseThreadConfig *thread_conf;
+  struct ThreadConfig* conf;
 };
 struct DeviceConfig {
   size_t device_count;
   char **devices;
 };
-struct MouseWheelConfig{
+struct MouseWheelConfig {
   int axis;
   struct ButtonConfig conf;
   unsigned int g_source;
 };
+
 struct MouseThreadConfig {
-  char *event;
   int wheel_clear_timeout;
-  int is_running; // Atomic
-  size_t size;
   struct MouseCursorConfig movement_widget;
+  struct ThreadConfig thread;
   size_t wheel_size;
   struct MouseWheelConfig **wheels;
+  size_t size;
   struct MouseButtonConfig **buttons;
 };
 struct MouseConfig {
@@ -118,8 +118,7 @@ struct MouseConfig {
 };
 struct KeyboardThreadConfig {
   size_t size;
-  char *event;
-  int is_running; // atomic
+  struct ThreadConfig thread;
   struct xkb_state *state;
   struct KeyboardButtonConfig **buttons;
 };

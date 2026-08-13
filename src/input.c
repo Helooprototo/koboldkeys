@@ -55,8 +55,8 @@ void *keyboard_loop(void *args) {
   struct KeyboardThreadConfig *config = (struct KeyboardThreadConfig *)args;
 
   struct xkb_state *state = config->state;
-  printf("Opening input device: %s \n", config->event);
-  int input_device = open(config->event, O_RDONLY);
+  printf("Opening input device: %s \n", config->thread.event);
+  int input_device = open(config->thread.event, O_RDONLY);
   int flags = fcntl(input_device, F_GETFL, 0);
   fcntl(input_device, flags | O_NONBLOCK);
   if (input_device == -1) {
@@ -68,7 +68,7 @@ void *keyboard_loop(void *args) {
   struct pollfd fds;
   fds.fd = input_device;
   fds.events = POLLIN;
-  while (atomic_load((_Atomic int *)&config->is_running)) {
+  while (atomic_load((_Atomic int *)&config->thread.is_running)) {
     int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
       // Only accept non-repeat Key inputs
@@ -121,7 +121,7 @@ void *keyboard_loop(void *args) {
       }
     }
   }
-  free(config->event);
+  free(config->thread.event);
   free(config);
   return (void *)0;
 }
@@ -129,11 +129,11 @@ void *keyboard_loop(void *args) {
 void *mouse_loop(void *args) {
   struct MouseThreadConfig *config = (struct MouseThreadConfig *)args;
   struct input_event ev;
-  int mouse = open(config->event, O_RDONLY);
+  int mouse = open(config->thread.event, O_RDONLY);
   struct pollfd fds;
   fds.fd = mouse;
   fds.events = POLLIN;
-  while (atomic_load((_Atomic int *)&config->is_running)) {
+  while (atomic_load((_Atomic int *)&config->thread.is_running)) {
     int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
       if (read(mouse, &ev, sizeof(ev)) != sizeof(ev)) {
@@ -194,7 +194,7 @@ void *mouse_loop(void *args) {
     }
   }
 
-  free(config->event);
+  free(config->thread.event);
   free(config);
   return (void *)0;
 }
@@ -215,19 +215,18 @@ void destroy_keyboard_button(struct KeyboardButtonConfig *button) {
 }
 void *input_loop(void *args) {
   struct InputConfig *conf = (struct InputConfig *)args;
-  struct KeyboardInputThreadContainer *kbd_threads = malloc(
-      conf->kbd.dev.device_count * sizeof(struct KeyboardInputThreadContainer));
-  struct MouseInputThreadContainer *mouse_threads = malloc(
-      conf->mouse.dev.device_count * sizeof(struct MouseInputThreadContainer));
+  struct ThreadContainer *threads = malloc((conf->kbd.dev.device_count+conf->mouse.dev.device_count)*sizeof(struct ThreadContainer));
+  int thread_count = 0;
   if (conf->kbd.dev.device_count > 0) {
     for (int i = 0; i < conf->kbd.dev.device_count; i++) {
       size_t malloc_size = sizeof(struct KeyboardThreadConfig);
       struct KeyboardThreadConfig *kbd_conf = malloc(malloc_size);
-      kbd_threads[i].thread_conf = kbd_conf;
+      threads[thread_count].conf = &kbd_conf->thread;
       memcpy(kbd_conf, &conf->kbd.input, malloc_size);
-      kbd_conf->event = strdup(conf->kbd.dev.devices[i]);
-      atomic_store((_Atomic int *)&kbd_conf->is_running, 1);
-      pthread_create(&kbd_threads[i].thread, NULL, keyboard_loop, kbd_conf);
+      kbd_conf->thread.event = strdup(conf->kbd.dev.devices[i]);
+      atomic_store((_Atomic int *)&kbd_conf->thread.is_running, 1);
+      pthread_create(&threads[thread_count].thread, NULL, keyboard_loop, kbd_conf);
+      thread_count+=1;
     }
   }
   if (conf->mouse.dev.device_count > 0) {
@@ -235,18 +234,19 @@ void *input_loop(void *args) {
       size_t malloc_size = sizeof(struct MouseThreadConfig);
       struct MouseThreadConfig *mouse_conf = malloc(malloc_size);
       memcpy(mouse_conf, &conf->mouse.input, malloc_size);
-      mouse_threads[i].thread_conf = mouse_conf;
-      mouse_conf->event = strdup(conf->mouse.dev.devices[i]);
-      atomic_store((_Atomic int *)&mouse_conf->is_running, 1);
-      pthread_create(&mouse_threads[i].thread, NULL, mouse_loop, mouse_conf);
+      threads[thread_count].conf = &mouse_conf->thread;
+      mouse_conf->thread.event = strdup(conf->mouse.dev.devices[i]);
+      atomic_store((_Atomic int *)&mouse_conf->thread.is_running, 1);
+      pthread_create(&threads[thread_count].thread, NULL, mouse_loop, mouse_conf);
+      thread_count+=1;
     }
   }
   pthread_mutex_lock(&conf->input_thread.mut);
   pthread_cond_wait(&conf->input_thread.quit_cond, &conf->input_thread.mut);
   pthread_mutex_unlock(&conf->input_thread.mut);
-  for (int i = 0; i < conf->kbd.dev.device_count; i++) {
-    atomic_store((_Atomic int *)&kbd_threads[i].thread_conf->is_running, 0);
-    pthread_join(kbd_threads[i].thread, NULL);
+  for (int i = 0; i < thread_count; i++) {
+    atomic_store((_Atomic int *)&threads[i].conf->is_running, 0);
+    pthread_join(threads[i].thread, NULL);
   }
   for (int i = 0; i < conf->kbd.input.size; i++) {
     destroy_keyboard_button(conf->kbd.input.buttons[i]);
@@ -257,10 +257,6 @@ void *input_loop(void *args) {
     free(conf->mouse.input.wheels[i]);
   }
   free(conf->mouse.input.wheels);
-  for (int i = 0; i < conf->mouse.dev.device_count; i++) {
-    atomic_store((_Atomic int *)&mouse_threads[i].thread_conf->is_running, 0);
-    pthread_join(mouse_threads[i].thread, NULL);
-  }
   for (int i = 0; i < conf->mouse.input.size; i++) {
     destroy_button_static_data(&conf->mouse.input.buttons[i]->conf);
     free(conf->mouse.input.buttons[i]);
@@ -269,8 +265,7 @@ void *input_loop(void *args) {
     free(conf->mouse.input.movement_widget.coords);
   }
   free(conf->mouse.input.buttons);
-  free(kbd_threads);
-  free(mouse_threads);
+  free(threads);
 
   return (void *)0;
 }

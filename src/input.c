@@ -131,6 +131,7 @@ void *keyboard_loop(void *args) {
 void *mouse_loop(void *args) {
   struct MouseThreadConfig *config = (struct MouseThreadConfig *)args;
   struct input_event ev;
+  printf("Opening input device: %s\n",config->thread.event);
   int mouse = open(config->thread.event, O_RDONLY);
   struct pollfd fds;
   fds.fd = mouse;

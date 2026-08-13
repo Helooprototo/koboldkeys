@@ -50,7 +50,9 @@ void handle_button_press(struct ButtonConfig *button, struct input_event ev) {
     unpress_button(button);
   }
 }
-
+int is_thread_running(struct ThreadConfig thread){
+  return atomic_load((_Atomic int *)&thread.is_running);
+}
 void *keyboard_loop(void *args) {
   struct KeyboardThreadConfig *config = (struct KeyboardThreadConfig *)args;
 
@@ -68,7 +70,7 @@ void *keyboard_loop(void *args) {
   struct pollfd fds;
   fds.fd = input_device;
   fds.events = POLLIN;
-  while (atomic_load((_Atomic int *)&config->thread.is_running)) {
+  while (is_thread_running(config->thread)) {
     int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
       // Only accept non-repeat Key inputs
@@ -133,7 +135,7 @@ void *mouse_loop(void *args) {
   struct pollfd fds;
   fds.fd = mouse;
   fds.events = POLLIN;
-  while (atomic_load((_Atomic int *)&config->thread.is_running)) {
+  while (is_thread_running(config->thread)) {
     int ret = poll(&fds, 1, 10);
     if (ret > 0 && (fds.revents & POLLIN)) {
       if (read(mouse, &ev, sizeof(ev)) != sizeof(ev)) {

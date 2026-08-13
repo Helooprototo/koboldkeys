@@ -203,7 +203,6 @@ static void activate(GtkApplication *app, gpointer user_data) {
                                mouse_fixed_add_arr_size);
     for (int i = 0; i < mouse_fixed_add_arr_size; i++) {
       struct ButtonConfig *button = mouse_fixed_add_arr[i];
-      printf("%i\n", button->st.coords->z);
       configure_button(button);
       gtk_fixed_put(GTK_FIXED(fixed), button->runtime.widget,
                     button->st.coords->x, button->st.coords->y);

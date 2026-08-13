@@ -83,6 +83,7 @@ For mouse wheels the Up and Down state can be selected through the `up` and `dow
 .mousewheel.down{
     background:red;
 }
+```
 
 A specific key can be selected through the key given to it in the `config.toml` file
 

@@ -199,8 +199,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
           (void *)&in->mouse.input.wheels[i]->conf;
       mouse_fixed_add_arr_size++;
     }
-    sort_mouse_buttons_z_index((struct ButtonConfig **)mouse_fixed_add_arr,
-                               mouse_fixed_add_arr_size);
+    if (mouse_size > 0 || wheel_size > 0) {
+      sort_mouse_buttons_z_index((struct ButtonConfig **)mouse_fixed_add_arr,
+                                 mouse_fixed_add_arr_size);
+    }
     for (int i = 0; i < mouse_fixed_add_arr_size; i++) {
       struct ButtonConfig *button = mouse_fixed_add_arr[i];
       configure_button(button);

@@ -258,7 +258,9 @@ struct Config *config(int argc, char **argv) {
   }
   int fd = open(path, O_RDONLY);
   char *tmp = (char *)malloc(st.st_size + strlen(drop_in));
-  read(fd, tmp, st.st_size);
+  if(read(fd, tmp, st.st_size)!=st.st_size){
+    perror("Failure to read config file");
+  };
   tmp[st.st_size - 1] = '\0';
   strcat(tmp, drop_in);
   auto toml = toml::parse(tmp);

@@ -32,7 +32,7 @@ char *check_device(toml::node_view<toml::node> data) {
   st.st_dev = 0;
   if (data.is_string()) {
     stat(data.value_or(""), &st);
-    if (st.st_dev != 7) {
+    if ((st.st_mode & S_IFMT)!= S_IFCHR ) {
       perror("File is probably not an input device!");
       std::cout << "Ignoring device: " << data.value_or("") << std::endl;
       return (char *)NULL;

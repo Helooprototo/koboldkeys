@@ -225,7 +225,7 @@ void *input_loop(void *args) {
       size_t malloc_size = sizeof(struct KeyboardThreadConfig);
       struct KeyboardThreadConfig *kbd_conf = malloc(malloc_size);
       threads[thread_count].conf = &kbd_conf->thread;
-      memcpy(kbd_conf, &conf->kbd.input, malloc_size);
+      memcpy(kbd_conf, &conf->kbd.thread_conf, malloc_size);
       kbd_conf->thread.event = strdup(conf->kbd.dev.devices[i]);
       atomic_store((_Atomic int *)&kbd_conf->thread.is_running, 1);
       pthread_create(&threads[thread_count].thread, NULL, keyboard_loop, kbd_conf);
@@ -236,7 +236,7 @@ void *input_loop(void *args) {
     for (int i = 0; i < conf->mouse.dev.device_count; i++) {
       size_t malloc_size = sizeof(struct MouseThreadConfig);
       struct MouseThreadConfig *mouse_conf = malloc(malloc_size);
-      memcpy(mouse_conf, &conf->mouse.input, malloc_size);
+      memcpy(mouse_conf, &conf->mouse.thread_conf, malloc_size);
       threads[thread_count].conf = &mouse_conf->thread;
       mouse_conf->thread.event = strdup(conf->mouse.dev.devices[i]);
       atomic_store((_Atomic int *)&mouse_conf->thread.is_running, 1);
@@ -251,23 +251,23 @@ void *input_loop(void *args) {
     atomic_store((_Atomic int *)&threads[i].conf->is_running, 0);
     pthread_join(threads[i].thread, NULL);
   }
-  for (int i = 0; i < conf->kbd.input.size; i++) {
-    destroy_keyboard_button(conf->kbd.input.buttons[i]);
+  for (int i = 0; i < conf->kbd.thread_conf.size; i++) {
+    destroy_keyboard_button(conf->kbd.thread_conf.buttons[i]);
   }
-  free(conf->kbd.input.buttons);
-  for (int i = 0; i < conf->mouse.input.wheel_size; i++) {
-    destroy_button_static_data(&conf->mouse.input.wheels[i]->conf);
-    free(conf->mouse.input.wheels[i]);
+  free(conf->kbd.thread_conf.buttons);
+  for (int i = 0; i < conf->mouse.thread_conf.wheel_size; i++) {
+    destroy_button_static_data(&conf->mouse.thread_conf.wheels[i]->conf);
+    free(conf->mouse.thread_conf.wheels[i]);
   }
-  free(conf->mouse.input.wheels);
-  for (int i = 0; i < conf->mouse.input.size; i++) {
-    destroy_button_static_data(&conf->mouse.input.buttons[i]->conf);
-    free(conf->mouse.input.buttons[i]);
+  free(conf->mouse.thread_conf.wheels);
+  for (int i = 0; i < conf->mouse.thread_conf.size; i++) {
+    destroy_button_static_data(&conf->mouse.thread_conf.buttons[i]->conf);
+    free(conf->mouse.thread_conf.buttons[i]);
   }
-  if (conf->mouse.input.movement_widget.should_show) {
-    free(conf->mouse.input.movement_widget.coords);
+  if (conf->mouse.thread_conf.movement_widget.should_show) {
+    free(conf->mouse.thread_conf.movement_widget.coords);
   }
-  free(conf->mouse.input.buttons);
+  free(conf->mouse.thread_conf.buttons);
   free(threads);
 
   return (void *)0;

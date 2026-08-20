@@ -23,7 +23,7 @@ static gboolean quit(GtkWidget *widget, GdkEvent *event, gpointer user_data) {
   // update in the thread
   while (g_main_context_iteration(NULL, FALSE) == TRUE) {
   };
-  xkb_state_unref(in->kbd.input.state);
+  xkb_state_unref(in->kbd.thread_conf.state);
   for (int i = 0; i < in->kbd.dev.device_count; i++) {
     free(in->kbd.dev.devices[i]);
   }
@@ -129,18 +129,18 @@ void configure_button(struct ButtonConfig *button) {
 static void activate(GtkApplication *app, gpointer user_data) {
   struct Config *conf = (struct Config *)user_data;
   struct InputConfig *in = &conf->input;
-  int kbd_size = in->kbd.input.size;
-  int mouse_size = in->mouse.input.size;
-  int wheel_size = in->mouse.input.wheel_size;
+  int kbd_size = in->kbd.thread_conf.size;
+  int mouse_size = in->mouse.thread_conf.size;
+  int wheel_size = in->mouse.thread_conf.wheel_size;
   GtkWidget *window;
   for (int i = 0; i < mouse_size; i++) {
-    in->mouse.input.buttons[i]->conf.runtime.widget = gtk_button_new();
+    in->mouse.thread_conf.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
   for (int i = 0; i < wheel_size; i++) {
-    in->mouse.input.wheels[i]->conf.runtime.widget = gtk_button_new();
+    in->mouse.thread_conf.wheels[i]->conf.runtime.widget = gtk_button_new();
   }
   for (int i = 0; i < kbd_size; i++) {
-    in->kbd.input.buttons[i]->conf.runtime.widget = gtk_button_new();
+    in->kbd.thread_conf.buttons[i]->conf.runtime.widget = gtk_button_new();
   }
 
   GtkWidget *grid;
@@ -171,10 +171,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
   if (in->kbd.dev.device_count > 0) {
     gtk_container_add(GTK_CONTAINER(box), grid);
     for (int i = 0; i < kbd_size; i++) {
-      struct ButtonConfig *button = &in->kbd.input.buttons[i]->conf;
+      struct ButtonConfig *button = &in->kbd.thread_conf.buttons[i]->conf;
       configure_button(button);
       gtk_button_set_label(GTK_BUTTON(button->runtime.widget),
-                           in->kbd.input.buttons[i]->label);
+                           in->kbd.thread_conf.buttons[i]->label);
       gtk_grid_attach(GTK_GRID(grid), button->runtime.widget,
                       button->st.coords->x, button->st.coords->y,
                       button->st.coords->width, button->st.coords->height);
@@ -191,12 +191,12 @@ static void activate(GtkApplication *app, gpointer user_data) {
     size_t mouse_fixed_add_arr_size = 0;
     for (int i = 0; i < mouse_size; i++) {
       mouse_fixed_add_arr[mouse_fixed_add_arr_size] =
-          (void *)&in->mouse.input.buttons[i]->conf;
+          (void *)&in->mouse.thread_conf.buttons[i]->conf;
       mouse_fixed_add_arr_size++;
     }
     for (int i = 0; i < wheel_size; i++) {
       mouse_fixed_add_arr[mouse_fixed_add_arr_size] =
-          (void *)&in->mouse.input.wheels[i]->conf;
+          (void *)&in->mouse.thread_conf.wheels[i]->conf;
       mouse_fixed_add_arr_size++;
     }
     if (mouse_size > 0 || wheel_size > 0) {
@@ -210,8 +210,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
                     button->st.coords->x, button->st.coords->y);
     }
     free(mouse_fixed_add_arr);
-    if (in->mouse.input.movement_widget.should_show) {
-      struct MouseCursorConfig *cursor = &in->mouse.input.movement_widget;
+    if (in->mouse.thread_conf.movement_widget.should_show) {
+      struct MouseCursorConfig *cursor = &in->mouse.thread_conf.movement_widget;
       cursor->widget = gtk_button_new();
       gtk_widget_set_name(cursor->widget, "cursor");
       gtk_widget_set_size_request(cursor->widget, cursor->coords->width,
@@ -219,8 +219,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
       GtkStyleContext *cntx = gtk_widget_get_style_context(cursor->widget);
       gtk_style_context_add_class(cntx, "mousebutton");
       gtk_fixed_put(GTK_FIXED(fixed), cursor->widget,
-                    in->mouse.input.movement_widget.coords->x,
-                    in->mouse.input.movement_widget.coords->y);
+                    cursor->coords->x,
+                    cursor->coords->y);
     }
   }
   char *path =

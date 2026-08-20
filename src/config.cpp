@@ -290,19 +290,19 @@ struct Config *config(int argc, char **argv) {
   } else {
     wheel_size = toml["mousewheel"].as_table()->size();
   }
-  config->input.kbd.input.buttons = (struct KeyboardButtonConfig **)malloc(
+  config->input.kbd.thread_conf.buttons = (struct KeyboardButtonConfig **)malloc(
       size * sizeof(struct KeyboardButtonConfig *));
-  config->input.kbd.input.size = size;
-  config->input.mouse.input.buttons = (struct MouseButtonConfig **)malloc(
+  config->input.kbd.thread_conf.size = size;
+  config->input.mouse.thread_conf.buttons = (struct MouseButtonConfig **)malloc(
       mouse_size * sizeof(struct MouseButtonConfig *));
-  config->input.mouse.input.size = mouse_size;
-  config->input.mouse.input.wheels = (struct MouseWheelConfig **)malloc(
+  config->input.mouse.thread_conf.size = mouse_size;
+  config->input.mouse.thread_conf.wheels = (struct MouseWheelConfig **)malloc(
       wheel_size * sizeof(struct MouseWheelConfig *));
-  config->input.mouse.input.wheel_size = wheel_size;
+  config->input.mouse.thread_conf.wheel_size = wheel_size;
   free(xdg_config);
   map_devices(&config->input.mouse.dev, toml["input"]["mouse"]);
   map_devices(&config->input.kbd.dev, toml["input"]["keyboard"]);
-  config->input.kbd.input.state = create_xkb(toml["xkb"]);
+  config->input.kbd.thread_conf.state = create_xkb(toml["xkb"]);
   config->window.edge =
       map_edge(toml["window"]["anchors"][0], GTK_LAYER_SHELL_EDGE_BOTTOM);
   config->window.edge2 =
@@ -311,22 +311,22 @@ struct Config *config(int argc, char **argv) {
   config->window.layer_shell = map_bool(toml["window"]["is-layer-shell"]);
   config->window.paintable = map_bool(toml["window"]["transparent"]);
   if (toml["mouse"]["cursor"].is_table()) {
-    config->input.mouse.input.movement_widget.should_show = true;
-    config->input.mouse.input.movement_widget.coords =
+    config->input.mouse.thread_conf.movement_widget.should_show = true;
+    config->input.mouse.thread_conf.movement_widget.coords =
         (struct ButtonCoordinates *)malloc(sizeof(struct ButtonCoordinates));
     map_coords(toml["mouse"]["cursor"],
-               config->input.mouse.input.movement_widget.coords);
+               config->input.mouse.thread_conf.movement_widget.coords);
   } else {
-    config->input.mouse.input.movement_widget.should_show = false;
+    config->input.mouse.thread_conf.movement_widget.should_show = false;
   }
   int btn_index = 0;
   if (wheel_size > 0) {
     toml["mousewheel"].as_table()->for_each([&btn_index, config](
                                                 auto &key, toml::table &value) {
-      config->input.mouse.input.wheels[btn_index] =
+      config->input.mouse.thread_conf.wheels[btn_index] =
           (struct MouseWheelConfig *)malloc(sizeof(struct MouseWheelConfig));
       struct MouseWheelConfig *button =
-          config->input.mouse.input.wheels[btn_index];
+          config->input.mouse.thread_conf.wheels[btn_index];
       init_button(&button->conf, toml::node_view<toml::node>(value),
                   std::string(key).c_str(), "mousewheel");
       button->axis = value["axis"].value_or(0);
@@ -334,17 +334,17 @@ struct Config *config(int argc, char **argv) {
       btn_index += 1;
     });
   }
-  config->input.mouse.input.wheel_clear_timeout =
+  config->input.mouse.thread_conf.wheel_clear_timeout =
       toml["wheel-clear-timeout"].value_or(500);
   btn_index = 0;
   if (mouse_size > 0) {
     toml["mousebutton"].as_table()->for_each(
         [&btn_index, config](auto &key, toml::table &value) {
-          config->input.mouse.input.buttons[btn_index] =
+          config->input.mouse.thread_conf.buttons[btn_index] =
               (struct MouseButtonConfig *)malloc(
                   sizeof(struct MouseButtonConfig));
           struct MouseButtonConfig *button =
-              config->input.mouse.input.buttons[btn_index];
+              config->input.mouse.thread_conf.buttons[btn_index];
           init_button(&button->conf, toml::node_view<toml::node>(value),
                       std::string(key).c_str(), "mousebutton");
           button->key = value["code"].value_or(0);
@@ -355,11 +355,11 @@ struct Config *config(int argc, char **argv) {
   if (size > 0) {
     toml["button"].as_table()->for_each([config, &btn_index,
                                          size](auto &key, toml::table &value) {
-      config->input.kbd.input.buttons[btn_index] =
+      config->input.kbd.thread_conf.buttons[btn_index] =
           (struct KeyboardButtonConfig *)malloc(
               sizeof(struct KeyboardButtonConfig));
       struct KeyboardButtonConfig *button =
-          config->input.kbd.input.buttons[btn_index];
+          config->input.kbd.thread_conf.buttons[btn_index];
       init_button(&button->conf, toml::node_view<toml::node>(value),
                   std::string(key).c_str(), "keyboardbutton");
       if (value["sym"].is_array()) {

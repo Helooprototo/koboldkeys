@@ -114,7 +114,7 @@ struct MouseThreadConfig {
 };
 struct MouseConfig {
   struct DeviceConfig dev;
-  struct MouseThreadConfig input;
+  struct MouseThreadConfig thread_conf;
 };
 struct KeyboardThreadConfig {
   size_t size;
@@ -124,7 +124,7 @@ struct KeyboardThreadConfig {
 };
 struct KeyboardConfig {
   struct DeviceConfig dev;
-  struct KeyboardThreadConfig input;
+  struct KeyboardThreadConfig thread_conf;
 };
 struct InputConfig {
   struct InputLoopThread input_thread;

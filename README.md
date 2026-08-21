@@ -30,6 +30,10 @@ The compiled executable will be under "build/koboldkeys".
 
 An example `config.toml` and `style.css` can be found in this repo. Koboldkeys searches `XDG_CONFIG_HOME/koboldkeys/` for these two files. Which defaults to `$HOME/.config/koboldkeys` if unset.
 
+Drop-in config files are read from `XDG_CONFIG_HOME/koboldkeys/conf.d`
+
+Koboldkeys supports hot reloading of the style.css file, allowing you to preview changes in real time.
+
 The main way to style koboldkeys and make it look "good" is through the `style.css` file, with gtk-3.0 css.
 An overview of this css can be found [on the gtk-3.0 docs](https://docs.gtk.org/gtk3/css-overview.html)
 

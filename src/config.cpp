@@ -206,62 +206,17 @@ void read_confd_files(char *base_path, char **tomls) {
   }
   free(dir);
 }
-extern "C" char *get_config_path(int argc, char **argv);
-char *get_config_path(int argc, char **argv) {
-  char *path;
-  for(int i=0;i<argc;i++){
-    if(strcmp(argv[i],"-c")==0 || strcmp(argv[i],"--config")==0){
-      printf("%s",argv[i+1]);
-      fflush(stdout);
-      if(i+1 < argc){
-        if(argv[i+1][strlen(argv[i+1]-1)!='/']){
-        path = (char*)malloc(strlen(argv[i+1])+2);
-        strcpy(path,argv[i+1]);
-        strcat(path,"/");
-        return path;
-        }else{
-          path = strdup(argv[i+1]);
-          return path;
-        }
-      }
-    }
-  }
-  if (getenv("XDG_CONFIG_HOME") == 0) {
-    char *home = getenv("HOME");
-    const char *def = "/.config/koboldkeys/";
-    path = (char *)malloc(strlen(home) + strlen(def) + 1);
-    if (path == NULL) {
-      perror("Malloc failure");
-      exit(1);
-    }
-    strcpy(path, home);
-    strcat(path, def);
-    return path;
-  } else {
-    char *xdg_config;
-    xdg_config = getenv("XDG_CONFIG_HOME");
-    path = (char *)malloc(strlen(xdg_config) + strlen("/koboldkeys/") + 1);
-    if (path == NULL) {
-      perror("Malloc failure");
-      exit(1);
-    }
-    strcpy(path, xdg_config);
-    strcat(path, "/koboldkeys/");
-    return path;
-  }
-}
-extern "C" struct Config *config(int argc, char **argv);
-struct Config *config(int argc, char **argv) {
+
+extern "C" struct Config *config(char* xdg_config);
+struct Config *config(char* xdg_config) {
   struct Config *config;
   config = (Config *)malloc(sizeof(struct Config));
   if (config == NULL) {
     perror("Malloc failure");
     exit(1);
   }
-  char *xdg_config = get_config_path(argc, argv);
   char *drop_in;
   config->base_path = strdup(xdg_config);
-  read_confd_files(config->base_path, &drop_in);
   char *path = (char *)malloc(strlen(xdg_config) + strlen("conf.toml") + 1);
   if (path == NULL) {
     perror("Malloc failure");
@@ -276,6 +231,7 @@ struct Config *config(int argc, char **argv) {
     exit(1);
   }
   int fd = open(path, O_RDONLY);
+  read_confd_files(config->base_path, &drop_in);
   char *tmp = (char *)malloc(st.st_size + strlen(drop_in));
   if(read(fd, tmp, st.st_size)!=st.st_size){
     perror("Failure to read config file");

@@ -140,6 +140,24 @@ int map_layer(toml::node_view<toml::node> layer) {
     return GTK_LAYER_SHELL_LAYER_OVERLAY;
   }
 }
+int map_axis(toml::node_view<toml::node>axis){
+  if(axis.is_string()){
+    const char* str = axis.value_or("updown");
+    if(strcasecmp(str, "updown") == 0){ 
+      return SCROLLBOTH;
+    }else if(strcasecmp(str, "down") == 0){
+      return SCROLLDOWN;
+    }else if(strcasecmp(str, "up") == 0){
+      return SCROLLUP;
+    }else{
+      return SCROLLNONE;
+    }
+  }else if(axis.is_integer()){
+      return (axis.value_or(0)>=1? SCROLLUP : SCROLLDOWN);
+  }else{
+    return SCROLLNONE;
+  }
+}
 void init_button(struct ButtonConfig *button,
                  toml::node_view<toml::node> coords, const char *name,
                  const char *css_class) {
@@ -329,7 +347,7 @@ struct Config *config(int argc, char **argv) {
           config->input.mouse.thread_conf.wheels[btn_index];
       init_button(&button->conf, toml::node_view<toml::node>(value),
                   std::string(key).c_str(), "mousewheel");
-      button->axis = value["axis"].value_or(0);
+      button->axis = map_axis(value["axis"]);
       button->g_source = 0;
       btn_index += 1;
     });

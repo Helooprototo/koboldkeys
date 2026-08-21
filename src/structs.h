@@ -3,7 +3,10 @@
 
 #include <gtk/gtk.h>
 #include <linux/input.h>
-
+#define SCROLLUP 1
+#define SCROLLDOWN -1
+#define SCROLLBOTH 2
+#define SCROLLNONE 0
 struct ButtonRuntimeData {
   GtkWidget *widget;
   int clicked_by; // atomic

@@ -167,8 +167,9 @@ void *mouse_loop(void *args) {
         printf("Pressed mouse key: %i\n", ev.code);
       } else if (ev.type == EV_REL && ev.code == REL_WHEEL) {
         for (int i = 0; i < config->wheel_size; i++) {
+          printf("%i",config->wheels[i]->axis);
           if (config->wheels[i]->axis == ev.value ||
-              config->wheels[i]->axis == 2) {
+              config->wheels[i]->axis == SCROLLBOTH) {
             struct ButtonScrollUpdate *upd =
                 malloc(sizeof(struct ButtonScrollUpdate));
             if (upd == NULL) {

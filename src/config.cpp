@@ -209,21 +209,21 @@ void read_confd_files(char *base_path, char **tomls) {
 extern "C" char *get_config_path(int argc, char **argv);
 char *get_config_path(int argc, char **argv) {
   char *path;
-  int opt;
-  while ((opt = getopt(argc, argv, "c:")) != -1) {
-    switch (opt) {
-    case 'c':
-      std::cout << "config path set through opt: " << optarg << std::endl;
-      if (optarg[strlen(optarg) - 1] != '/') {
-        // Insert trailing slash if not gi
-        path = (char *)malloc(strlen(optarg) + 2);
-        strcpy(path, optarg);
-        strcat(path, "/");
-      } else {
-        path = strdup(optarg);
+  for(int i=0;i<argc;i++){
+    if(strcmp(argv[i],"-c")==0 || strcmp(argv[i],"--config")==0){
+      printf("%s",argv[i+1]);
+      fflush(stdout);
+      if(i+1 < argc){
+        if(argv[i+1][strlen(argv[i+1]-1)!='/']){
+        path = (char*)malloc(strlen(argv[i+1])+2);
+        strcpy(path,argv[i+1]);
+        strcat(path,"/");
+        return path;
+        }else{
+          path = strdup(argv[i+1]);
+          return path;
+        }
       }
-      return path;
-      break;
     }
   }
   if (getenv("XDG_CONFIG_HOME") == 0) {

@@ -48,8 +48,8 @@ int main(int argc, char **argv) {
     }else if(strcmp(argv[i],"-h")==0 || strcmp(argv[i],"--help")==0){
       printf("Usage: koboldkeys [OPTIONS]\n\n");
       printf("OPTIONS: \n");
-      printf("\t-c, --config | Specify a configuration folder to use, instead of the default\n");
-      printf("\t-h, --help | Print this message and exit");
+      printf("\t-c, --config \t Specify a configuration folder to use, instead of the default\n");
+      printf("\t-h, --help \t Print this message and exit");
       exit(0);
     }
   }

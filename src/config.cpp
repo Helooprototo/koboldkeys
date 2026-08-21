@@ -30,6 +30,7 @@ xkb_state *create_xkb(toml::node_view<toml::node> data) {
 char *check_device(toml::node_view<toml::node> data) {
   struct stat st;
   st.st_dev = 0;
+  st.st_mode = 0;
   if (data.is_string()) {
     stat(data.value_or(""), &st);
     if ((st.st_mode & S_IFMT)!= S_IFCHR ) {

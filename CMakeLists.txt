@@ -17,7 +17,8 @@ target_include_directories(koboldkeys PUBLIC ${GTK_INCLUDE_DIRS})
 target_link_libraries(koboldkeys PUBLIC ${GTK_LIBRARIES})
 target_link_libraries(koboldkeys PUBLIC ${TOML_LIBRARIES})
 target_link_libraries(koboldkeys PUBLIC ${XKB_LIBRARIES})
-
+target_compile_definitions(koboldkeys PUBLIC TOML_HEADER_ONLY=0)
+target_compile_definitions(koboldkeys PUBLIC TOML_ENABLE_FORMATTERS=0)
 install(TARGETS koboldkeys DESTINATION bin)
 
 #target_compile_options(koboldkeys PUBLIC -fsanitize=address -fno-omit-frame-pointer -g)

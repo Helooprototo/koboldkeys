@@ -37,7 +37,7 @@ int main(int argc, char **argv) {
     if(strcmp(argv[i],"-c")==0 || strcmp(argv[i],"--config")==0){
       fflush(stdout);
       if(i+1 < argc){
-        if(argv[i+1][strlen(argv[i+1]-1)!='/']){
+        if(argv[i+1][strlen(argv[i+1])-1]!='/'){
         conf_path = (char*)malloc(strlen(argv[i+1])+2);
         strcpy(conf_path,argv[i+1]);
         strcat(conf_path,"/");

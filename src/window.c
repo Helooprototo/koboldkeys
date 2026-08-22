@@ -248,7 +248,7 @@ void create_overlay(struct Config *b) {
   GtkApplication *app;
   int status;
 
-  app = gtk_application_new("org.gtk.example", G_APPLICATION_DEFAULT_FLAGS);
+  app = gtk_application_new("org.gtk.koboldkeys", G_APPLICATION_NON_UNIQUE);
   g_signal_connect(app, "activate", G_CALLBACK(activate), b);
   status = g_application_run(G_APPLICATION(app), 0, NULL);
   g_object_unref(app);

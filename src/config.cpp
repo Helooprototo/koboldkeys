@@ -254,7 +254,6 @@ struct Config *config(char* xdg_config) {
   size_t mouse_size = 0;
   if (!toml["mousebutton"]) {
     mouse_size = 0;
-    std::cout << "no mouse buttons" << std::endl;
   } else {
     mouse_size = toml["mousebutton"].as_table()->size();
   }

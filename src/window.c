@@ -179,6 +179,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
                       button->st.coords->x, button->st.coords->y,
                       button->st.coords->width, button->st.coords->height);
     }
+  }else{
+    printf("No keyboard device specificed, skipping creation of keyboard widgets\n");
   }
   if (in->mouse.dev.device_count > 0) {
     gtk_container_add(GTK_CONTAINER(box), fixed);
@@ -222,6 +224,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
                     cursor->coords->x,
                     cursor->coords->y);
     }
+  }else{
+    printf("No mouse devices specificed. Skipping creation of mouse widgets\n");
   }
   char *path =
       malloc(strlen(conf->base_path) + strlen("style.css") * sizeof(char) + 1);

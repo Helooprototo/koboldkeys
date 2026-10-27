@@ -6,4 +6,4 @@ struct configuration{
 };
 
 
-int get_config(struct configuration* out);
+int get_config(struct configuration* out,char* override);

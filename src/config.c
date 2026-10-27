@@ -39,45 +39,54 @@ static int config_handler(void* user, const char* section, const char* name, con
       
       ch = strtok(NULL,",");
     }
-    pconfig->events = realloc(pconfig->events,(sizeof(char*)*event_count)); //shrink back to required size
+    if(event_count > 0){
+      pconfig->events = realloc(pconfig->events,(sizeof(char*)*event_count)); //shrink back to required size
+    }
     free(str);
     pconfig->event_count=event_count;
   }
   return 0;
 }
 
-char* get_config_path(){
+char* get_default_config_path(){
      char* config_dir = getenv("XDG_CONFIG_HOME");
      if(config_dir == NULL){
         char* home = getenv("HOME");
-        char* conf_home = malloc(strlen(home)+strlen("/.config/koboldkeys")+1);
+        char* conf_home = malloc(strlen(home)+strlen("/.config/koboldkeys/conf.ini")+1);
         strcpy(conf_home,home);
-        strcat(conf_home,"/.config/koboldkeys");
-        config_dir = conf_home;
+        strcat(conf_home,"/.config/koboldkeys/conf.ini");
+        config_dir = strdup(conf_home);
+        free(conf_home);
      }else{
-        char* kobold_conf = malloc(strlen(config_dir)+strlen("/koboldkeys")+1);
+        char* kobold_conf = malloc(strlen(config_dir)+strlen("/koboldkeys/conf.ini")+1);
         strcpy(kobold_conf,config_dir);
-        strcat(kobold_conf,"/koboldkeys");
-        config_dir = kobold_conf;
+        strcat(kobold_conf,"/koboldkeys/conf.ini");
+        config_dir = strdup(kobold_conf);
+        free(kobold_conf);
     }
     return config_dir;
 }
-int get_config(struct configuration* out){
-    char* config = get_config_path();
-    char* ini_conf = malloc(strlen(config)+strlen("/conf.ini")+1);
-    strcpy(ini_conf,config);
-    strcat(ini_conf,"/conf.ini");
-    if(access(ini_conf,F_OK)!=0){
-      printf("No configuration file found at %s! Please create one\n",ini_conf);
+char* get_config_path( char* override){
+    char* out;
+     if(override == NULL){
+      out = get_default_config_path();
+    }else{
+      out = strdup(override);
+    }
+    return out;
+}
+int get_config(struct configuration* out,char* override){
+    
+    char* config = get_config_path(override);
+    if(access(config,F_OK)!=0){
+      printf("No configuration file found at %s! Please create one\n",config);
       free(config);
-      free(ini_conf);
       return -1;
     }
-    if(ini_parse(ini_conf,config_handler,out)<0){
+    if(ini_parse(config,config_handler,out)<0){
     perror("Cant load config");
     return -1;
   }
   free(config);
-  free(ini_conf);
   return 0;
 }

@@ -29,6 +29,32 @@ struct thread{
     pthread_t thread;
     struct thread_data data;
 };
+
+struct overrides{
+  char* config_path;
+  char* socket_path;
+};
+
+int parse_args(struct overrides* out,int argc, char** argv){
+  out->config_path = NULL;
+  out->socket_path = NULL;
+  for(int i=0;i<argc;i++){
+    if((strcmp(argv[i],"-c")==0 || strcmp(argv[i],"--config")==0) && i<argc+1){
+      out->config_path = strdup(argv[i+1]);
+    }else if((strcmp(argv[i],"-s")== 0 || strcmp(argv[i],"--socket")==0) && i<argc+1){
+      out->socket_path = strdup(argv[i+1]);
+    }else if(strcmp(argv[i],"-h")== 0 || strcmp(argv[i],"--help")==0){
+      printf("USAGE: koboldkeysd [args]\n");
+      printf("\n");
+      printf("\n");
+      printf("ARGS:\n");
+      printf("-s --socket [path] | Override the path where koboldkeysd creates its socket, will also have to be set for any used frontend\n");
+      printf("-c --config [path] | Override the path to koboldkeysd conf.ini, default $XDG_CONFIG_HOME/koboldkeys/conf.ini or ~/.config/koboldkeys/conf.ini\n");
+      return -1;
+    }
+  }
+  return 0;
+}
 void* read_loop(void* c){
   struct thread_data* data = (struct thread_data*)c;
   
@@ -65,26 +91,29 @@ void sigint(int sig) {
 }
 
 
-int main() {
+int main(int argc, char** argv) {
   struct input_event ev;
   struct configuration config;
-  config.event_count = 0;
+  struct overrides overrides;
   printf("Hello, world!\n");
   signal(SIGINT, sigint);
-  if(get_config(&config)){
+  if(parse_args(&overrides,argc,argv)<0){
+    return 0;
+  }
+  if(get_config(&config,overrides.config_path)){
     printf("Error fetching config\n");
-    return -1;
+    return 1;
   }
   int len;
   int sock_fd;
   struct sockaddr_un sock;
-  if(create_socket(&sock, &sock_fd)<0){
+  if(create_socket(&sock, &sock_fd,overrides.socket_path)<0){
     perror("Error creating socket");
-    return -1;
+    return 1;
   }
   if(listen(sock_fd,2)<0){
     perror("Error listening");
-    return -1;
+    return 1;
   }
   socklen_t addrlen = sizeof(sock);
   struct thread threads[MAX_THREADS-1];

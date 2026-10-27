@@ -32,17 +32,20 @@ struct thread{
 
 struct overrides{
   char* config_path;
-  char* socket_path;
+  struct socket_overrides socket_overrides;
 };
 
 int parse_args(struct overrides* out,int argc, char** argv){
   out->config_path = NULL;
-  out->socket_path = NULL;
+  out->socket_overrides.path = NULL;
+  out->socket_overrides.unlink_custom_path = 0;
   for(int i=0;i<argc;i++){
     if((strcmp(argv[i],"-c")==0 || strcmp(argv[i],"--config")==0) && i<argc+1){
       out->config_path = strdup(argv[i+1]);
     }else if((strcmp(argv[i],"-s")== 0 || strcmp(argv[i],"--socket")==0) && i<argc+1){
-      out->socket_path = strdup(argv[i+1]);
+      out->socket_overrides.path = strdup(argv[i+1]);
+    }else if((strcmp(argv[i],"--unlink-custom-socket-path")==0) && i<argc+1){
+      out->socket_overrides.unlink_custom_path=1;
     }else if(strcmp(argv[i],"-h")== 0 || strcmp(argv[i],"--help")==0){
       printf("USAGE: koboldkeysd [args]\n");
       printf("\n");
@@ -50,10 +53,16 @@ int parse_args(struct overrides* out,int argc, char** argv){
       printf("ARGS:\n");
       printf("-s --socket [path] | Override the path where koboldkeysd creates its socket, will also have to be set for any used frontend\n");
       printf("-c --config [path] | Override the path to koboldkeysd conf.ini, default $XDG_CONFIG_HOME/koboldkeys/conf.ini or ~/.config/koboldkeys/conf.ini\n");
+      printf("--unlink-custom-socket-path | Unlink an existing file at the given path of the socket, by default koboldkeysd only unlinks a file at the default socket path\n");
       return -1;
     }
   }
   return 0;
+}
+
+void free_overrides(struct overrides* overrides){
+  free(overrides->socket_overrides.path);
+  free(overrides->config_path);
 }
 void* read_loop(void* c){
   struct thread_data* data = (struct thread_data*)c;
@@ -107,7 +116,7 @@ int main(int argc, char** argv) {
   int len;
   int sock_fd;
   struct sockaddr_un sock;
-  if(create_socket(&sock, &sock_fd,overrides.socket_path)<0){
+  if(create_socket(&sock, &sock_fd,overrides.socket_overrides)<0){
     perror("Error creating socket");
     return 1;
   }
@@ -145,6 +154,7 @@ int main(int argc, char** argv) {
    }
   printf("Cleaning\n");
   unlink(sock.sun_path);
-  free(config.events);  
+  free(config.events);
+  free_overrides(&overrides);
   return 0;
 }

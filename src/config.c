@@ -7,6 +7,7 @@
 struct configuration{
   const char** events;
   int event_count;
+  const char* xkb_layout;
 };
 
 static int config_handler(void* user, const char* section, const char* name, const char* value){
@@ -44,6 +45,8 @@ static int config_handler(void* user, const char* section, const char* name, con
     }
     free(str);
     pconfig->event_count=event_count;
+  }else if(MATCH("config","layout")){
+    pconfig->xkb_layout = strdup(value);
   }
   return 0;
 }

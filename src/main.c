@@ -11,6 +11,8 @@
 #include "config.h"
 #include <pthread.h>
 #include <poll.h>
+#include <xkbcommon/xkbcommon.h>
+#include "protocol.h"
 
 #define MAX_CLIENTS 256
 #define MAX_THREADS 256
@@ -23,6 +25,7 @@ struct thread_data{
   int* clients;
   int* client_count;
   int running;
+  struct xkb_state* state;
 };
 
 struct thread{
@@ -64,6 +67,15 @@ void free_overrides(struct overrides* overrides){
   free(overrides->socket_overrides.path);
   free(overrides->config_path);
 }
+
+char* keycode_to_keysym(int code,struct xkb_state* state){
+  xkb_keycode_t keycode = code+8;
+char key_name[64];
+  xkb_keysym_t keysym = xkb_state_key_get_one_sym(state,keycode);
+  xkb_keysym_get_name(keysym,key_name,sizeof(key_name));
+  return strdup(key_name);
+}
+
 void* read_loop(void* c){
   struct thread_data* data = (struct thread_data*)c;
   
@@ -84,8 +96,12 @@ void* read_loop(void* c){
       gettimeofday(&time,NULL);
       printf("Sending input events to sockets at time: %lu\n",time.tv_usec);
       fflush(stdout);
+      struct koboldkeysd_message msg;
+      msg.event = ev;
+      xkb_keysym_t ks = xkb_state_key_get_one_sym(data->state,ev.code+8);
+      xkb_keysym_get_name(ks,msg.xkb_keysym,64);
       for(int i=0;i<*data->client_count;i++){
-        int sent = send(data->clients[i],&ev,sizeof(ev),MSG_NOSIGNAL);
+        int sent = send(data->clients[i],&msg,sizeof(msg),MSG_NOSIGNAL);
         if(sent < 0){
           perror("Error sending");
         }
@@ -129,11 +145,16 @@ int main(int argc, char** argv) {
   int clients[MAX_CLIENTS-1];
   int client_count = 0;
   printf("Using %d input devices\n",config.event_count);
+  struct xkb_context* ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
+  struct xkb_rule_names names = {NULL,NULL,config.layout,NULL,NULL};
+  struct xkb_keymap* keymap = xkb_keymap_new_from_names2(ctx,&names,XKB_KEYMAP_FORMAT_TEXT_V2, XKB_KEYMAP_COMPILE_NO_FLAGS);
+  struct xkb_state* state = xkb_state_new(keymap);
   for(int i=0;i<config.event_count;i++){
     threads[i].data.device = config.events[i];
     threads[i].data.clients = &clients[0];
     threads[i].data.client_count = &client_count;
     threads[i].data.running = 1;
+    threads[i].data.state = state;
     pthread_create(&threads[i].thread,NULL,read_loop,(void*)&threads[i].data);
   }
   while (is_running==1) {

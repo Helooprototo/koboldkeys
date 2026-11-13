@@ -13,6 +13,7 @@
 #include <poll.h>
 #include <xkbcommon/xkbcommon.h>
 #include "protocol.h"
+#include <errno.h>
 
 #define MAX_CLIENTS 256
 #define MAX_THREADS 256
@@ -158,10 +159,24 @@ int main(int argc, char** argv) {
     pthread_create(&threads[i].thread,NULL,read_loop,(void*)&threads[i].data);
   }
   while (is_running==1) {
-     if(client_count < MAX_CLIENTS-1){
-       clients[client_count] = accept(sock_fd,(struct sockaddr*)&sock,&addrlen);
-       if(clients[client_count] != -1){
-          client_count++;
+ struct pollfd pfds;
+        for(int i=0;i<client_count;i++){
+         pfds.fd = clients[i];
+         pfds.events = POLLIN;
+         int incoming = poll(&pfds,1,1);
+         if(incoming > 0){
+            char msg[256];
+            ssize_t n = recv(clients[i],&msg,sizeof(msg),0);
+            if(n > 0){
+              printf("Recieved message: %s with bytes: %lu \n",msg,n);
+              fflush(stdout);
+            }
+           }
+         }
+        if(client_count < MAX_CLIENTS-1){
+          clients[client_count] = accept(sock_fd,(struct sockaddr*)&sock,&addrlen);
+          if(clients[client_count] != -1){
+            client_count++;
         }else{
           sleep(1); // Dont stress out the cpu if we dont have a pending connection
         }
